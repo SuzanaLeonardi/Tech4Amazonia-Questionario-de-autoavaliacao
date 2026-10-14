@@ -112,8 +112,8 @@ details.pre>summary::-webkit-details-marker{display:none}
 details.pre>summary::after{content:' \25BE'}
 details.pre[open]>summary::after{content:' \25B4'}
 .preb{margin-top:12px}
-#modal{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto}
-#modal[hidden]{display:none}
+#modal,#confirm{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto}
+#modal[hidden],#confirm[hidden]{display:none}
 .mbox{background:var(--surface);color:var(--ink);border-radius:12px;padding:20px;max-width:680px;width:100%;margin-block:auto}
 .mbox h2{font-size:1.3rem;margin-bottom:8px}
 .mbox ol{margin:8px 0;padding-left:22px}
@@ -213,6 +213,12 @@ table.info th,table.info td{vertical-align:top}
 </div>
 <div id="toast" role="status"></div>
 <input type="file" id="fileIn" accept=".json,application/json" hidden>
+<div id="confirm" hidden><div class="mbox" role="alertdialog" aria-modal="true" aria-labelledby="ct">
+  <h2 id="ct">Faltam itens obrigatórios</h2>
+  <p id="cmsg"></p>
+  <p>Se este for o arquivo final para enviar, volte e preencha. Se for só um rascunho, pode salvar assim mesmo.</p>
+  <div class="macts"><button type="button" class="btn pri" id="cBack">Voltar e preencher</button><button type="button" class="btn" id="cGo">Salvar assim mesmo</button></div>
+</div></div>
 <div id="modal" hidden><div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mt">
   <h2 id="mt">Copie suas respostas e envie por e-mail</h2>
   <p>O download de arquivo não está disponível neste acesso. Faça assim:</p>
@@ -963,6 +969,13 @@ function missing(){
   if(!has(S['DECL|nome']))m.push('o nome de quem declara');
   return m;
 }
+let pendente=null;
+function confirmaSalvar(acao){
+  const m=missing();
+  if(!m.length){acao();return}
+  $('#cmsg').textContent='Ainda falta preencher: '+m.join('; ')+'.';
+  pendente=acao;$('#confirm').hidden=false;$('#cBack').focus();
+}
 function status(msg,cls){const s=$('#status');s.textContent=msg;s.className=cls||'';if(msg&&!/^Enviando/.test(msg))toast(msg)}
 function baixarBlob(name,data,type){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;
@@ -998,7 +1011,7 @@ $('#mCopy').addEventListener('click',async()=>{
   catch(e){t.focus();t.select();$('#mstat').textContent='Não foi possível copiar sozinho. O texto está selecionado: use Ctrl+C.'}
 });
 $('#mClose').addEventListener('click',()=>{$('#modal').hidden=true});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#modal').hidden=true});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('#modal').hidden=true;$('#confirm').hidden=true;pendente=null}});
 let canSend=false;
 async function initSend(){
   const how=$('#howto');
@@ -1034,9 +1047,11 @@ let clr=false;
 document.addEventListener('click',e=>{
   const id=(e.target.id||'').replace(/2$/,'');
   if(id==='bSend')enviar();
-  else if(id==='bJson'){if(missing().length&&!has(S['0.0|sol']))toast('Dica: preencha o nome da solução na Seção 0.');saveFile(`autoavaliacao-tech4amazonia-${slug()}.json`,dumpJson())}
-  else if(id==='bTxt')saveFile(`autoavaliacao-tech4amazonia-${slug()}.txt`,dumpAll());
-  else if(id==='bCopy')copyAll();
+  else if(id==='bJson')confirmaSalvar(()=>saveFile(`autoavaliacao-tech4amazonia-${slug()}.json`,dumpJson()));
+  else if(id==='bTxt')confirmaSalvar(()=>saveFile(`autoavaliacao-tech4amazonia-${slug()}.txt`,dumpAll()));
+  else if(id==='bCopy')confirmaSalvar(copyAll);
+  else if(id==='cGo'){$('#confirm').hidden=true;const a=pendente;pendente=null;if(a)a()}
+  else if(id==='cBack'){$('#confirm').hidden=true;pendente=null;const alvo=!has(S['0.0|sol'])?'q-f_0_0':'q-f_DECL';const el=document.getElementById(alvo);if(el)el.scrollIntoView({block:'center'})}
   else if(id==='bClear'){
     const el=e.target;if(!el.dataset.t)el.dataset.t=el.textContent;
     if(!clr){clr=true;el.textContent='Clique de novo para apagar tudo';setTimeout(()=>{clr=false;el.textContent=el.dataset.t},4000)}
