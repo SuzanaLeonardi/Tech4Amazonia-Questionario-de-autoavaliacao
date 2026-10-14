@@ -1,0 +1,1092 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Autoavaliação Tech4Amazônia</title><style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style></head><body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: índice fixo à esquerda (select no celular) + coluna única de perguntas em cartões; barra de progresso no topo. */
+:root{
+  --bg:#F2F5F3; --surface:#FFFFFF; --ink:#14231F; --muted:#56675F; --line:#D3DDD8;
+  --accent:#0B6E5F; --accent-ink:#FFFFFF; --accent-soft:#DDEFE9; --hint-bg:#FFF3D1; --hint:#6B4E00;
+  --warn:#B3261E; --ok:#17683A;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'Public Sans','Segoe UI',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0D1614; --surface:#14211E; --ink:#E5EEEB; --muted:#93A8A1; --line:#2A3B37;
+  --accent:#43C4A8; --accent-ink:#04201A; --accent-soft:#1A3A34; --hint-bg:#3A3014; --hint:#F0D58A;
+  --warn:#FF8A80; --ok:#6FD39A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1614; --surface:#14211E; --ink:#E5EEEB; --muted:#93A8A1; --line:#2A3B37;
+  --accent:#43C4A8; --accent-ink:#04201A; --accent-soft:#1A3A34; --hint-bg:#3A3014; --hint:#F0D58A;
+  --warn:#FF8A80; --ok:#6FD39A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;padding-inline:16px;padding-block:0 64px}
+h1,h2,h3,h4{font-family:var(--f-display);text-wrap:balance;margin:0}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--bg);margin-inline:-16px;padding:10px 16px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.top .brand{font-family:var(--f-display);font-weight:700;font-size:1rem;white-space:nowrap}
+.prog{flex:1 1 220px;min-width:0}
+.prog .bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.prog .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.prog small{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:.8rem;margin-top:3px}
+.tacts{display:flex;gap:8px;flex-wrap:nowrap}
+.tacts .btn{margin:0;white-space:nowrap}
+#jump{display:none;max-width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+
+.shell{max-width:1120px;margin-inline:auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:32px;padding-block:24px}
+nav.toc{position:sticky;top:76px;align-self:start;max-height:calc(100vh - 96px);overflow:auto;font-size:.88rem}
+nav.toc a{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:6px;color:var(--muted);text-decoration:none}
+nav.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+nav.toc a.cur{background:var(--accent-soft);color:var(--ink);font-weight:600}
+nav.toc .c{font-variant-numeric:tabular-nums;opacity:.8}
+main{min-width:0}
+
+.hero{padding-block:8px 8px}
+.hero .kick{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.hero h1{font-size:clamp(1.9rem,5vw,2.8rem);line-height:1.1;margin-top:4px}
+.hero p{color:var(--muted);margin:6px 0 0}
+
+.sec{padding-top:36px;scroll-margin-top:84px}
+.sec>header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px;border-bottom:2px solid var(--ink);padding-bottom:8px}
+.sec>header .tag{font-family:var(--f-display);font-weight:700;color:var(--accent);font-size:1rem;white-space:nowrap}
+.sec>header h2{font-size:1.45rem;line-height:1.2}
+.intro{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin-bottom:12px;max-width:72ch}
+.info{max-width:72ch;margin:0 0 12px}
+.info strong{font-weight:600}
+h4.grp{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 4px}
+h3.sub{font-size:1.1rem;margin:22px 0 8px}
+
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:12px}
+.q.done{border-color:var(--accent)}
+.q h3{display:flex;gap:10px;align-items:baseline;font-size:1.02rem;line-height:1.35;font-weight:600;font-family:var(--f-body);margin-bottom:10px}
+.qid{font-family:var(--f-display);font-weight:700;color:var(--accent);flex:none;min-width:2.1em;font-variant-numeric:tabular-nums}
+.qid:empty{display:none}
+.parts{display:flex;flex-wrap:wrap;gap:12px 16px}
+.part{flex:1 1 100%;min-width:0}
+.part.h{flex:1 1 220px}
+.part.s{flex:0 1 190px}
+.pl{display:block;font-size:.88rem;color:var(--muted);margin-bottom:4px}
+input[type=text],textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);resize:vertical;min-width:0}
+textarea{min-height:76px}
+input[type=text]:focus,textarea:focus{border-color:var(--accent)}
+
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts.stack{flex-direction:column;gap:6px}
+.opt{position:relative;display:inline-flex;align-items:center;gap:8px;cursor:pointer;max-width:100%}
+.opt input[type=radio],.opt input[type=checkbox]{position:absolute;opacity:0;width:1px;height:1px}
+.ob{display:inline-block;padding:6px 12px;border:1px solid var(--line);border-radius:99px;background:var(--bg);line-height:1.35;transition:background .12s,border-color .12s}
+.opt:hover .ob{border-color:var(--accent)}
+.opt.on .ob{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.opt input:focus-visible+.ob{outline:3px solid var(--accent);outline-offset:2px}
+.stack .ob{border-radius:8px;display:block;width:100%}
+.stack .opt{display:flex}
+.opt .onote{display:none;width:min(280px,60vw);flex:1 1 160px}
+.opt.on .onote{display:block}
+.stack .opt.on{flex-wrap:wrap}
+.opts.full .opt:not(.on) .ob{opacity:.45}
+.opts[data-multi="1"]:not(.ckbox) .ob::before{content:'\2610\00a0'}
+.opts[data-multi="1"]:not(.ckbox) .opt.on .ob::before{content:'\2611\00a0'}
+.opts.ckbox .ob{position:relative;padding:12px 14px 12px 46px;border:2px solid var(--accent);border-radius:8px;background:var(--surface);font-size:.95rem}
+.opts.ckbox .ob::before{content:'';position:absolute;left:13px;top:50%;width:20px;height:20px;margin-top:-10px;border:2px solid var(--accent);border-radius:4px;background:var(--bg)}
+.opts.ckbox .opt.on .ob{background:var(--accent-soft);color:var(--ink)}
+.opts.ckbox .opt.on .ob::before{content:'\2713';background:var(--accent);color:var(--accent-ink);text-align:center;line-height:16px;font-size:14px;font-weight:700}
+.att{margin-top:12px;padding:12px 14px;border:1px dashed var(--accent);border-radius:8px;background:var(--accent-soft)}
+.att .at{font-weight:600}
+.att p{margin:6px 0;font-size:.9rem}
+.att code{background:var(--surface);padding:2px 6px;border-radius:4px;font-size:.85rem;word-break:break-all}
+.att .btn.sm{margin:0 0 0 6px}
+.att .opts{margin-top:8px}
+.qw{margin-top:12px;padding:10px 14px;border:1px solid var(--warn);border-radius:8px;font-size:.9rem}
+.qw ul,#wlist ul{margin:6px 0 0;padding-left:20px}
+.qw strong{color:var(--warn)}
+#wlist{margin:8px 0}
+#wlist li{margin:4px 0}
+#wlist a{font-weight:600}
+.okline{color:var(--ok);font-weight:500}
+details.pre{margin:12px 0 0}
+details.pre>summary{display:inline-block;cursor:pointer;list-style:none;padding:9px 16px;border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-weight:600;background:var(--surface)}
+details.pre>summary::-webkit-details-marker{display:none}
+details.pre>summary::after{content:' \25BE'}
+details.pre[open]>summary::after{content:' \25B4'}
+.preb{margin-top:12px}
+#modal{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto}
+#modal[hidden]{display:none}
+.mbox{background:var(--surface);color:var(--ink);border-radius:12px;padding:20px;max-width:680px;width:100%;margin-block:auto}
+.mbox h2{font-size:1.3rem;margin-bottom:8px}
+.mbox ol{margin:8px 0;padding-left:22px}
+#mtext{height:200px;margin-top:8px;font-family:ui-monospace,Consolas,monospace;font-size:.78rem}
+.macts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+#mstat{margin:8px 0 0;font-weight:500;min-height:1.4em}
+.mx{font-size:.8rem;color:var(--muted);margin-top:4px}
+
+.tw{overflow-x:auto;margin-top:4px;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+thead th{background:var(--accent-soft);font-weight:600;font-size:.82rem}
+tr:last-child>th,tr:last-child>td{border-bottom:0}
+table.grid td{text-align:center;width:1%;white-space:nowrap}
+table.grid thead th{text-align:center}
+table.grid thead th:first-child{text-align:left}
+table.grid tbody th{font-weight:400;min-width:200px}
+table.grid tbody th input{margin-top:4px}
+.gc{width:30px;height:30px;justify-content:center}
+.gc .ob{width:22px;height:22px;padding:0;border-radius:50%;border:2px solid var(--muted);background:transparent;display:block}
+.gc.on .ob{background:var(--accent);border-color:var(--accent);box-shadow:inset 0 0 0 4px var(--surface)}
+table.data td input,table.data td textarea{min-width:130px;min-height:0}
+table.data td textarea{min-height:60px}
+table.data th.n{width:1%;white-space:nowrap}
+table.info th,table.info td{vertical-align:top}
+
+.rws{display:flex;flex-direction:column}
+.rw{padding:12px 0;border-bottom:1px solid var(--line)}
+.rw:last-child{border-bottom:0}
+.rl{font-weight:500;margin-bottom:6px}
+.rl input{margin-top:4px;max-width:340px;display:block}
+.rf{display:flex;flex-wrap:wrap;gap:10px 16px}
+.hint{margin:10px 0 0;padding:6px 10px;background:var(--hint-bg);color:var(--hint);border-radius:6px;font-size:.86rem;max-width:72ch}
+.rw .hint{margin-top:6px}
+
+.btn{border:1px solid var(--line);background:var(--surface);padding:9px 16px;border-radius:8px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.sm{padding:5px 12px;font-size:.85rem;margin-top:8px}
+.btn[disabled]{opacity:.5;cursor:default}
+.send{background:var(--surface);border:2px solid var(--accent);border-radius:12px;padding:20px;margin-top:24px}
+.send h2{font-size:1.4rem;margin-bottom:6px}
+.send .acts{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.send ul{margin:8px 0;padding-left:20px}
+.impmsg{margin:8px 0 0;font-size:.9rem;min-height:0}
+.impmsg:empty{display:none}
+.impmsg.ok{color:var(--ok)} .impmsg.err{color:var(--warn)}
+#status{min-height:1.4em;margin:8px 0 0;font-weight:500}
+#status.err{color:var(--warn)} #status.ok{color:var(--ok)}
+#fallback{display:none;margin-top:10px;min-height:160px;font-family:ui-monospace,Consolas,monospace;font-size:.8rem}
+.foot{color:var(--muted);font-size:.85rem;margin-top:18px}
+.foot button{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:8px;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;max-width:90vw}
+#toast.on{opacity:1}
+
+@media (max-width:860px){
+  .shell{grid-template-columns:minmax(0,1fr);gap:0}
+  nav.toc{display:none}
+  #jump{display:block}
+  .top .brand{display:none}
+  .top{gap:6px 12px;padding-block:6px}
+  #jump{padding:4px 8px;font-size:.88rem}
+  .prog small{margin-top:1px}
+  .tacts .btn.sm{padding:4px 10px}
+  .tacts{flex:1 1 100%;overflow-x:auto;padding-bottom:2px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="top">
+  <span class="brand">Tech4Amazônia</span>
+  <div class="prog" aria-live="polite">
+    <div class="bar"><i id="barfill"></i></div>
+    <small><span id="progtxt">0 de 0 perguntas</span><span id="savetxt">Rascunho salvo neste navegador</span></small>
+  </div>
+  <select id="jump" aria-label="Ir para a seção"></select>
+  <div class="tacts" role="group" aria-label="Gravar respostas">
+    <button type="button" class="btn sm" id="bSend2" hidden>Enviar</button>
+    <button type="button" class="btn sm pri" id="bJson2" title="Baixa um arquivo .json com tudo o que você preencheu, para enviar à equipe ou para continuar depois">Salvar respostas</button>
+    <button type="button" class="btn sm" id="bCopy2" title="Copia as respostas em texto">Copiar respostas</button>
+    <button type="button" class="btn sm bLoad" title="Abre um arquivo de respostas salvo antes. Não serve para anexos.">Retomar preenchimento</button>
+    <button type="button" class="btn sm" id="bClear2" title="Apaga todas as respostas deste navegador. Pede um segundo clique para confirmar.">Limpar respostas</button>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="toc" id="toc" aria-label="Seções"></nav>
+  <main id="main">
+    <div class="hero">
+      <div class="kick">Programa de Aceleração Tech4Amazônia</div>
+      <h1>Formulário de Autoavaliação</h1>
+      <p>Outubro 2026</p>
+    </div>
+    <div id="form"></div>
+  </main>
+</div>
+<div id="toast" role="status"></div>
+<input type="file" id="fileIn" accept=".json,application/json" hidden>
+<div id="modal" hidden><div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mt">
+  <h2 id="mt">Copie suas respostas e envie por e-mail</h2>
+  <p>O download de arquivo não está disponível neste acesso. Faça assim:</p>
+  <ol>
+    <li>Clique em <strong>Copiar tudo</strong>.</li>
+    <li>Cole o texto no corpo de um e-mail para <strong id="mmail"></strong>.</li>
+    <li>Envie os anexos, à parte, para a pasta da PoC no Google Drive.</li>
+  </ol>
+  <textarea id="mtext" readonly aria-label="Respostas em texto"></textarea>
+  <div class="macts"><button type="button" class="btn pri" id="mCopy">Copiar tudo</button><button type="button" class="btn" id="mClose">Fechar</button></div>
+  <p id="mstat" role="status"></p>
+</div></div>
+
+<script>
+(function(){
+/* ---------- configuração do programa ---------- */
+const CONFIG={prazo:'29/10/2026',contato:'michele.capiotti@sustnreal.com',drive:''}; // preencher antes de enviar o link: prazo (ex.: 04/11/2026) contato (e-mail) e drive (link da pasta, se for a mesma para todos)
+const LSK='t4a-autoavaliacao-v20';
+
+/* ---------- atalhos para montar o formulário ---------- */
+const YN='Sim|Não';
+const r=(k,l,o,w)=>({ty:'r',k,l,o,w});
+const c=(k,l,o,max,box)=>({ty:'c',k,l,o,max,box});
+const t=(k,l,ph,w)=>({ty:'t',k,l,ph,w});
+const a=(k,l,ph)=>({ty:'a',k,l,ph});
+const dl=()=>[t('data','Se sim: data','mm/aaaa','h'),t('local','Local','','h')];
+const NA='NA (não se aplica)~Justificativa breve';
+const OUT='Outro~Qual?';
+
+const SECTIONS=[
+{k:'',title:'Antes de começar',items:[
+ {i:'Este formulário ajuda a sua equipe a organizar as informações sobre a solução antes do diagnóstico. As respostas são a base do diagnóstico e da decisão sobre a entrada na aceleração, no Gate 1. Respostas “não” ou “ainda não” são normais neste estágio e nos ajudam a identificar onde o programa pode apoiar mais. Algumas respostas serão comparadas com as evidências e com a avaliação dos especialistas; diferenças são discutidas no workshop.'},
+ {i:'**Uso dos dados.** As informações e os anexos serão usados apenas para o diagnóstico, o plano de aceleração e a reavaliação do programa. A pasta de cada solução tem acesso restrito aos avaliadores e à equipe do programa. A planilha financeira e as perguntas sobre custos, preços e clientes em negociação (2.8, 2.9, 4.3, 6.9 e Tabela B) ficam numa subpasta visível só para os especialistas e para a facilitação do programa. Se a solução não seguir para a execução, os dados serão eliminados em até 90 dias após o Gate 1.'},
+ {sub:'Como preencher'},
+ {i:'Este formulário é apresentado e explicado no kickoff com a equipe do programa. Vocês têm 2 semanas, a partir do kickoff, para preenchê-lo e reunir os anexos.'},
+ {i:'Responda marcando uma opção em cada pergunta. Quando houver campo numérico, de texto ou lista, seja breve. Para desfazer uma marcação, clique de novo na opção.'},
+ {i:'Pedimos poucos anexos. São 4 obrigatórios, quando existirem, e até 2 que só valem se se aplicarem à solução (veja o quadro abaixo). Nas demais perguntas, a resposta marcada vale como declaração da equipe e não é preciso anexar nada. No entanto, quanto mais informações, mais rico será o diagnóstico. Assim, fiquem à vontade para enviar outros documentos que considerem relevantes para a avaliação, como planos de negócio, proposta de edital, apresentação a investidor.'},
+ {i:'**Envie o que já existe.** Não é preciso criar documentos novos para este formulário. Se algo não existe, marque “não” ou “ainda não”.'},
+ {i:'Em listas de clientes, fornecedores ou parceiros, vocês podem usar códigos no lugar dos nomes (Cliente 1, Fornecedor 2), indicando setor e porte. Os nomes só aparecem no workshop, se a equipe quiser.'},
+ {i:'Algumas perguntas trazem a indicação “Sugerimos levar no workshop”. São materiais que ajudam a conversa com os especialistas, mas que não precisam ser enviados. Não mostrar não reduz a avaliação. A exceção é a Seção 8: sem comprovação dos números de impacto de hoje, enviada ou mostrada no workshop, a avaliação de impacto fica limitada a uma nota intermediária.'},
+ {i:'Um anexo obrigatório que não for enviado será considerado “a verificar”. Até um dia útil antes do workshop, vocês receberão uma pauta com os pontos a esclarecer.'},
+ {i:'Algumas perguntas admitem a resposta NA (não se aplica). Ela só aparece nessas perguntas e exige uma justificativa breve. Exemplo: “NA: a solução é só software, não há componentes físicos.” Nas demais perguntas, marque a opção mais próxima da realidade.'},
+ {i:'**Tempo estimado:** cerca de 4 horas para o formulário, de 1 a 2 horas para reunir os anexos e de 2 a 4 horas para a planilha financeira, se a equipe ainda não tiver uma pronta. As partes podem ser preenchidas por pessoas diferentes da equipe. No total, contando o tempo de reunir as evidências, o esforço é de até 16 horas nas 2 semanas.'},
+ {i:'**Salvamento.** Suas respostas ficam salvas automaticamente neste navegador, neste aparelho. Vocês podem fechar a página e voltar depois pelo mesmo link. Para continuar em outro aparelho, ou para passar o preenchimento a outra pessoa, salve o arquivo de respostas (botão “Salvar respostas”, no topo) e abra-o no outro aparelho com o botão abaixo.'},
+ {dyn:'imp'},
+ {sub:'Anexos deste formulário'},
+ {tab:{cols:['Nº','Anexo','Tipo','Onde é pedido'],rows:[
+  ['1','Deck de pitch mais recente, com os pontos da pergunta 0.2','Obrigatório','0.2'],
+  ['2','Uma evidência técnica: a da pergunta mais avançada em que marcaram “sim” na Seção 1','Obrigatório','1.12'],
+  ['3','Uma evidência comercial: o compromisso mais forte com cliente (3.6) ou, se não houver, a declaração de pagamento (3.4)','Obrigatório, se houver registro escrito em 3.4 ou documento em 3.6','3.10'],
+  ['4','Planilha financeira: histórico, se houver faturamento, e projeção de 3 anos','Obrigatório, se existir','6.9'],
+  ['5','Número do cadastro no SisGen (caso exista)','Só se usar patrimônio genético ou conhecimento tradicional','9.8'],
+  ['6','Licença ambiental ou protocolo','Só se a solução precisar de licença','10.6']]}},
+ {i:'**Os anexos não são enviados por esta página.** Envie os arquivos para a pasta da PoC no Google Drive, indicada no kickoff. Nomeie cada arquivo com o número do anexo e da pergunta. Exemplo: 2_1.3_relatorio_teste_campo.pdf. Nas perguntas que pedem anexo, um quadro tracejado mostra o nome sugerido do arquivo e uma caixa para marcar que ele já foi enviado.'},
+ {dyn:'prazo'}
+]},
+
+{k:'0',title:'Identificação',items:[
+ {q:{id:'0.0',nb:1,t:'Dados da solução e da equipe',p:[
+  t('sol','Nome da solução'),t('org','Organização responsável'),
+  t('contato','Pessoa de contato (nome, cargo, e-mail, telefone)'),
+  t('quem','Pessoas que preencheram este formulário'),
+  t('data','Data de preenchimento','dd/mm/aaaa','h')]}},
+ {q:{id:'0.1',t:'A solução é composta principalmente por:',p:[r('','','Hardware (equipamento, sensor, dispositivo)|Software|Processo químico ou biológico|Material|Serviço baseado em tecnologia|Combinação~Quais?')]}},
+ {q:{id:'0.2',t:'Anexe o deck de pitch mais recente da solução. Ele deve cobrir os pontos abaixo. Se faltar algum, acrescentem uma página com o que falta.',
+  tab:{cols:['Ponto','O que mostrar'],rows:[
+   ['Problema','Que problema a solução resolve e para quem'],['Solução','O que a solução faz e como funciona'],
+   ['Cliente-alvo','Quem compra e quem usa (tipo de organização, setor, porte)'],
+   ['Proposta de valor','Por que o cliente escolheria esta solução no lugar das alternativas'],
+   ['Modelo de negócio','Como a solução gera receita, principais custos, parceiros e canais (um Canvas simples serve)'],
+   ['Mercado','Tamanho estimado e onde a equipe quer começar'],['Equipe','Quem são as pessoas-chave e o que cada uma faz']]},
+  p:[r('','','Anexado, com todos os pontos|Anexado, com página complementar|Não temos deck de pitch')],
+  n:['Se não tiverem deck, enviem uma apresentação curta, de até 10 páginas, com os pontos da tabela. Nomeie o arquivo como 1_0.2_deck_pitch.pdf.']}}
+]},
+
+{k:'0B',title:'Ponto de partida, ambição e metas',items:[
+ {i:'Antes das perguntas sobre o que já existe, queremos entender o que aconteceu com a solução desde a PoC realizada com a Siemens em 2025 e aonde vocês querem chegar. Esta seção não gera nota própria. Os especialistas usam as respostas como contexto da avaliação. Elas servem também para construir o plano de aceleração com vocês e para alinhar o que o programa pode e o que não pode oferecer. Metas modestas e realistas são tão úteis quanto metas ambiciosas. Ter um caminho próprio, que não dependa do programa, é esperado.'},
+ {q:{id:'0B.1',t:'O que foi desenvolvido na PoC realizada com a Siemens em 2025 foi incorporado à solução? (marque a opção mais próxima)',p:[
+  r('','','Sim, está integrado à solução que oferecemos ou vamos oferecer aos clientes|Em parte: uma parte foi incorporada e o resto ficou só como teste ou foi descartado|Ainda não: continua como protótipo ou teste, separado da solução principal|Não: a solução seguiu outro caminho|A PoC é a própria solução'),
+  a('desc','Descrevam brevemente o que foi incorporado e o que mudou desde a PoC')]}},
+ {q:{id:'0B.2',t:'Hoje, qual é o lugar desta solução na estratégia da organização?',p:[
+  r('','','É o foco principal|É uma das prioridades, junto com outras soluções ou negócios|É secundária, sem prioridade definida|Está em reavaliação (podemos mudar de rumo, pausar, licenciar ou vender)'),
+  a('mud','Se mudou desde a PoC de 2025, o que mudou e por quê')]}},
+ {q:{id:'0B.3',t:'Daqui a 3 anos, que situação a equipe quer alcançar com a solução? (marque a principal)',p:[
+  r('','','Vender de forma recorrente na região amazônica|Vender no Brasil, em mais de uma região|Vender no Brasil e no exterior|Licenciar a tecnologia para empresas que produzam e vendam|Integrar a solução ao portfólio de um parceiro industrial|Ser adquirida ou incorporada por outra empresa|Ainda não definimos|Outra~Qual?')]}},
+ {q:{id:'0B.4',t:'Quais são as até 3 metas mais importantes da equipe para os próximos 12 meses? Para cada uma, indiquem como medir e o valor de hoje.',
+  tb:{cols:['Meta','Como medir (indicador)','Valor hoje','Valor em 12 meses'],n:3,num:1},
+  n:['Exemplos de indicador: clientes pagantes, receita (em faixa), unidades instaladas, recursos captados (em faixa), teste ou certificação concluídos, pessoas contratadas, indicador de impacto da Seção 8.','Se essas metas já estão escritas em outro documento (pitch, plano de negócio, proposta de edital, apresentação a investidor), podem, se quiserem, anexar o documento.']}},
+ {q:{id:'0B.5',t:'Como vocês esperam atingir essas metas sem o programa? Para cada meta, descrevam brevemente o caminho que já planejam seguir e com quais recursos (próprios, de parceiros ou a captar).',
+  tb:{cols:['Meta','Caminho previsto sem o programa'],n:3,num:1,ta:1}}}
+]},
+
+{k:'1',title:'Desenvolvimento e testes da tecnologia',items:[
+ {i:'Nesta seção, basta um anexo: a evidência da pergunta mais avançada em que vocês marcaram “sim”. A ordem, da menos para a mais avançada, é 1.1, 1.2, 1.3, 1.5, 1.6 e 1.9. Nas outras perguntas com “sim”, informem só a data e o local. Os especialistas podem pedir para ver os demais registros no workshop.'},
+ {q:{id:'1.1',t:'A ideia técnica central da solução já foi testada em experimento controlado, com resultados registrados?',p:[r('','',YN),...dl()],n:['Evidência, se esta for a pergunta mais avançada: relatório ou planilha com os resultados do experimento, indicando data, método e principais medições.']}},
+ {q:{id:'1.2',t:'As partes da solução já funcionaram juntas, de forma integrada, em laboratório ou bancada?',p:[r('','',YN),...dl()],n:['Evidência, se esta for a pergunta mais avançada: relatório de teste integrado com as métricas de desempenho definidas antes do teste e os resultados obtidos.']}},
+ {q:{id:'1.3',t:'A solução integrada já foi testada em condições que reproduzem o uso real (por exemplo: calor, umidade, chuva, água com sedimentos, energia instável, internet limitada)?',p:[r('','','Sim, em condições simuladas (câmara, tanque, bancada de estresse)|Sim, em local de teste controlado pela equipe|Não'),...dl()],n:['Evidência, se esta for a pergunta mais avançada: descrição das condições de teste, principais medições e falhas encontradas.']}},
+ {q:{id:'1.4',t:'Os resultados do teste da pergunta 1.3 se repetiram em mais de uma rodada de testes?',p:[r('','','Sim|Não|Só houve uma rodada'),t('rod','Se sim, informe o número de rodadas','','s')]}},
+ {q:{id:'1.5',t:'Existe um protótipo com forma, tamanho e funções próximos da versão final?',p:[r('','','Sim|Não, o protótipo ainda é bem diferente da versão final|'+NA),t('data','Se sim, data da versão atual','mm/aaaa','s')],n:['Evidência, se esta for a pergunta mais avançada: fotos ou vídeo do protótipo e lista das diferenças em relação à versão final prevista.']}},
+ {q:{id:'1.6',t:'A solução já operou no local real onde será usada?',p:[r('','',YN),
+  r('tempo','Se sim, por quanto tempo operou?','Menos de 1 mês|De 1 a 3 meses|Mais de 3 meses'),
+  t('unid','Quantas unidades ou instalações?','','s'),t('local','Local','','h'),t('periodo','Período','','h')],n:['Evidência, se esta for a pergunta mais avançada: relatório do piloto com local, período, dados de desempenho e problemas ocorridos.']}},
+ {q:{id:'1.7',t:'Nessa operação, quem operava a solução no dia a dia?',p:[r('','','Os futuros usuários (cliente ou comunidade)|A equipe de desenvolvimento|Os dois|Não houve operação no local real'),t('org','Se foram os futuros usuários, indique o tipo de organização e a função')]}},
+ {q:{id:'1.8',t:'A solução já foi demonstrada a pessoas de fora da equipe (clientes, parceiros, avaliadores)?',p:[r('','','Sim, em demonstração|Sim, em uso real (já respondido em 1.6)|Não'),t('data','Se sim, data','mm/aaaa','h'),t('local','Local','','h'),t('pub','Tipo de público')]}},
+ {q:{id:'1.9',t:'A versão final da solução já passou pelos testes de qualificação necessários para ser vendida (durabilidade, segurança, desempenho)?',p:[r('','','Sim|Em andamento|Não|'+NA),t('conc','Se sim ou em andamento, informe os testes já concluídos')],n:['Evidência, se esta for a pergunta mais avançada: plano de testes e resultados disponíveis.']}},
+ {q:{id:'1.10',t:'Na visão da equipe, em que ponto a tecnologia está hoje? Marque a opção mais alta para a qual vocês têm evidência.',p:[r('','','A ideia central foi comprovada em experimento|As partes funcionam juntas em laboratório|Funciona em condições que simulam o uso real (câmara, tanque, bancada de estresse ou local de teste da equipe)|Um protótipo próximo da versão final foi demonstrado em condições realistas|Funcionou no local real, operada pela nossa equipe|Funcionou no local real, operada pelo cliente ou usuário, sem a presença da equipe no dia a dia|A versão final está qualificada e pronta para produção|Já está em operação comercial com clientes pagantes')],n:['A resposta será comparada com a evidência anexada em 1.12 e com a avaliação do especialista em tecnologia indicado pela Siemens. Diferenças de avaliação serão discutidas no workshop.']}},
+ {q:{id:'1.11',t:'Qual parte da solução está menos desenvolvida hoje e como isso afeta a entrada no mercado em escala? O que falta para a tecnologia avançar ao próximo ponto da escala acima, quanto custa e em quanto tempo?',p:[
+  a('parte','Parte menos desenvolvida e efeito na entrada no mercado'),a('falta','O que falta'),t('custo','Custo estimado (R$)','','h'),t('prazo','Prazo estimado (meses)','','h')]}},
+ {q:{id:'1.12',t:'Anexo obrigatório: evidência técnica. A que pergunta corresponde o documento anexado?',p:[r('','','1.1|1.2|1.3|1.5|1.6|1.9|Nenhuma: não marcamos “sim” em nenhuma delas')]}}
+]},
+
+{k:'2',title:'Proteção de propriedade intelectual, normas e produção',items:[
+ {q:{id:'2.1',t:'A tecnologia tem alguma forma de proteção de propriedade intelectual?',p:[r('','','Patente concedida|Pedido de patente depositado|Registro de software|Segredo industrial com política documentada|Nenhuma|Em avaliação'),t('num','Se houver, número do pedido ou registro','','h'),t('tit','Titular (quem é o dono)','','h')]}},
+ {q:{id:'2.2',t:'O que foi desenvolvido na PoC realizada com a Siemens em 2025 tem titularidade definida por contrato?',p:[r('','','Sim, é só nossa|Sim, é compartilhada com a Siemens|Sim, é da Siemens|Sim, é compartilhada com outra instituição|Não está definida|Não sabemos')]}},
+ {q:{id:'2.3',t:'A solução usa software, hardware ou dados da Siemens que exigiriam licença para ser vendida a outros clientes?',p:[r('','','Sim, e a licença está resolvida|Sim, e a licença não está resolvida|Não|Não sabemos')]}},
+ {q:{id:'2.4',t:'Existem certificações, homologações ou normas técnicas obrigatórias para vender a solução?',p:[r('','','Sim, e já foram obtidas|Sim, em andamento|Sim, ainda não iniciadas|Não sabemos|'+NA),a('lista','Se sim, liste as exigências e o status de cada uma')]}},
+ {q:{id:'2.5',t:'Para soluções com hardware: existe uma lista de componentes com custo estimado (Bill of materials)?',p:[r('','','Sim|Não|'+NA)],n:['Sugerimos levar no workshop: a lista de componentes com quantidades, custos e fornecedores.']}},
+ {q:{id:'2.6',t:'Para soluções com hardware: já foram identificados fornecedores ou parceiros para produzir mais unidades?',p:[r('','','Sim, com orçamento|Sim, sem orçamento|Não|'+NA),t('qtd','Se sim, quantos fornecedores foram identificados? (não é preciso dar os nomes)','','s')]}},
+ {q:{id:'2.7',t:'Para soluções com hardware/maquinário: hoje, quantas unidades a equipe consegue produzir por ano?',p:[
+  r('','','Menos de 1 (produção artesanal ou sob encomenda)|1 a 5|6 a 20|21 a 100|Mais de 100|'+NA),
+  r('quem','Quem produz hoje?','A própria equipe|Laboratório ou universidade|Fornecedor terceirizado|Combinação'),
+  c('lim','O que mais limita a produção? (marque até 2)','Componentes importados ou com prazo longo|Mão de obra|Equipamentos|Espaço|Capital de giro|'+OUT,2)]}},
+ {q:{id:'2.8',t:'Quanto custa hoje produzir uma unidade (materiais, montagem, mão de obra e testes, sem logística e instalação)?',p:[t('v','R$ por unidade','','s'),r('st','','Ainda não calculado|Prefiro informar no workshop|'+NA)],n:['Sugerimos levar no workshop: a planilha de custo por unidade com as premissas.']}},
+ {q:{id:'2.9',t:'Quanto a equipe estima que custaria produzir uma unidade em lote maior (mais escala)?',p:[t('v','R$ por unidade','','s'),t('lote','Em um lote de (unidades)','','s'),r('st','','Ainda não estimado|Prefiro informar no workshop|'+NA)],n:['Sugerimos levar no workshop: os orçamentos ou o cálculo com as premissas.']}}
+]},
+
+{k:'3',title:'Compradores e como a solução resolve as suas dores',items:[
+ {i:'Nesta seção, entendemos que **decisor** é a pessoa do cliente que controla o orçamento e aprova a compra. **Usuário** é quem vai operar a solução. Muitas vezes são pessoas diferentes.'},
+ {i:'Nesta seção, basta um anexo, e só se houver declaração por escrito em 3.4 ou documento em 3.6: o registro do compromisso mais forte com um cliente (dados de clientes podem ser anonimizados). Nas demais perguntas, as respostas valem como declaração da equipe.'},
+ {q:{id:'3.1',t:'Com quantas pessoas de organizações potencialmente clientes a equipe conversou sobre o problema que a solução resolve? Conte pessoas diferentes, não reuniões.',p:[
+  r('usu','Usuários (vão operar a solução)','0|1 a 4|5 a 9|10 ou mais'),
+  r('inf','Influenciadores (gostam da solução e podem recomendar, mas não aprovam orçamento)','0|1 a 4|5 a 9|10 ou mais'),
+  r('dec','Decisores (aprovam o orçamento ou assinam a compra)','0|1 a 4|5 a 9|10 ou mais')],
+  n:['Preencha a Tabela A (no fim do formulário) com essas conversas. O número de decisores deve ser igual ao número de linhas da Tabela A em que “Controla orçamento?” é “Sim”. Na dúvida sobre se a pessoa aprova orçamento, conte como influenciador. Podem usar códigos no lugar dos nomes dos clientes.']}},
+ {q:{id:'3.2',t:'Em quantas organizações diferentes o problema foi descrito pelo próprio cliente como prioritário?',p:[r('','','Nenhuma|1|2|3 ou mais')]}},
+ {q:{id:'3.3',t:'Algum potencial cliente informou quanto o problema custa hoje para ele (em dinheiro, tempo ou risco)?',p:[r('','',YN),t('ordem','Se sim, qual a ordem de grandeza informada?')]}},
+ {q:{id:'3.4',t:'Algum decisor declarou, de forma explícita, que pagaria pela solução? Marque a forma mais forte que vocês têm.',p:[r('','','Sim, por escrito (e-mail, mensagem ou ata), com valor ou faixa de valor|Sim, por escrito, sem valor|Sim, apenas verbalmente|Não'),t('cargo','Se sim, cargo de quem declarou','','h'),r('valor','O valor foi:','proposto pela equipe e aceito pelo cliente|sugerido pelo próprio cliente|não houve valor')]}},
+ {q:{id:'3.5',t:'A equipe sabe o que os potenciais clientes usam hoje no lugar da solução (outro produto, trabalho manual, nada)?',p:[r('','','Sim, para todos os clientes consultados|Sim, para parte deles|Não'),t('alt','Se sim, liste as principais alternativas')]}},
+ {q:{id:'3.6',t:'Existe algum documento de compromisso com potencial cliente? Marque o mais forte.',p:[r('','','Contrato assinado|Piloto pago, com contrato ou pedido de compra|Carta de intenção de compra assinada pelo cliente|Memorando de entendimento assinado pelas duas partes|Proposta comercial formal (com escopo, preço e prazo) enviada e em negociação|Preço indicativo enviado por e-mail ou mensagem, sem proposta formal|Nenhum')]}},
+ {q:{id:'3.7',t:'Quantos potenciais clientes estão hoje em negociação ou em conversa ativa?',p:[r('','','0|1|2|3 ou mais')],n:['Se 1 ou mais, preencha a Tabela B (no fim do formulário) para até 3 clientes mais avançados.']}},
+ {q:{id:'3.8',t:'Dos potenciais clientes com quem conversaram, quantos disseram que a solução resolve um problema importante para eles e que considerariam comprá-la?',p:[r('','','Nenhum|1|2|3 ou mais')]}},
+ {q:{id:'3.9',t:'Existe um caminho conhecido e repetível para chegar aos decisores (quem apresenta, por qual canal)?',p:[r('','','Sim, já usado mais de uma vez|Sim, usado uma vez|Não'),t('desc','Se sim, descreva brevemente')]}},
+ {q:{id:'3.10',t:'Anexo obrigatório, se houver declaração por escrito em 3.4 ou documento em 3.6: evidência comercial. Anexem um único documento: o de 3.6, se houver, ou o registro escrito da declaração de 3.4 (e-mail, mensagem ou ata). Podem ocultar valores e o nome do cliente. A que pergunta corresponde o documento anexado?',p:[r('','','3.6|3.4|Nenhuma: não temos declaração por escrito em 3.4 nem documento em 3.6')]}}
+]},
+
+{k:'4',title:'Modelo comercial e custos',items:[
+ {q:{id:'4.1',t:'Como a solução vai gerar receita? (marque o principal)',p:[r('','','Venda de equipamento|Equipamento com contrato de manutenção|Assinatura ou serviço recorrente|Venda de dados ou relatórios|Licença da tecnologia|Serviço por projeto|Ainda não definido|'+OUT)]}},
+ {q:{id:'4.2',t:'Como os potenciais clientes reagiram ao modelo de receita?',p:[r('','','2 ou mais aceitaram|1 aceitou|Houve objeções|Ainda não apresentamos')]}},
+ {q:{id:'4.3',t:'Existe um preço ou faixa de preço definida?',p:[r('','',YN),t('preco','Se sim: preço ou faixa (R$)','','h'),t('por','Por (unidade, mês, projeto)','','h')]}},
+ {q:{id:'4.4',t:'Esse preço já foi apresentado a potenciais clientes?',p:[r('','','Sim, e 2 ou mais aceitaram ou confirmaram|Sim, e 1 aceitou ou confirmou|Sim, mas foi recusado ou questionado|Não foi apresentado')]}},
+ {q:{id:'4.5',t:'Além do custo de produção informado em 2.8, a equipe sabe quanto custa levar e instalar uma unidade ou entregar um projeto (transporte, instalação, manutenção inicial)?',p:[r('','','Sim, calculado com dados reais do piloto|Sim, estimado|Não')],n:['Sugerimos levar no workshop: a planilha de custo de entrega com as premissas.']}},
+ {q:{id:'4.6',t:'Com o preço e o custo atuais, a margem é positiva?',p:[r('','','Sim|Não|Não sabemos')],n:['O cálculo de margem aparece na planilha financeira (6.9), se existir.']}},
+ {q:{id:'4.7',t:'Qual é o menor contrato que vale a pena fechar, considerando o esforço de venda e de entrega?',p:[r('','','Calculado~Valor em R$|Não calculado')]}},
+ {q:{id:'4.8',t:'A solução pode ser entregue a novos clientes sem precisar ser redesenhada para cada um?',p:[r('','','Sim|Com pequenas adaptações|Não, cada cliente exige desenvolvimento próprio|Depende~Do quê?')]}}
+]},
+
+{k:'5',title:'Mercado, parceiros e canal',items:[
+ {q:{id:'5.1',t:'A equipe mapeou os concorrentes e definiu em que a solução é melhor do que eles?',p:[r('','','Sim, com comparação documentada|Sim, de forma informal|Não'),t('conc','Se sim, principais concorrentes ou alternativas','','h'),t('dif','Principais diferenciais','','h')]}},
+ {q:{id:'5.2',t:'O que dificulta que um concorrente copie a solução? (marque todas que se aplicam)',p:[c('','','Patente ou segredo industrial|Dados acumulados|Custo menor|Relação estabelecida com clientes|Conhecimento técnico difícil de reproduzir|Nada específico por enquanto')]}},
+ {q:{id:'5.3',t:'A equipe tem parceiros formalizados (tecnologia, produção, integração, distribuição)?',p:[r('','','Sim, 2 ou mais|Sim, 1|Em negociação|Não'),a('lista','Se sim, liste o tipo de cada parceiro e a forma do acordo (contrato, memorando, carta). Podem usar códigos no lugar dos nomes.')]}},
+ {q:{id:'5.4',t:'Quais serão os principais caminhos para chegar aos clientes? (marquem até 3)',p:[c('','','Venda direta|Integrador ou revendedor|Parceiro tecnológico|Siemens|Licitação ou compra pública|Ainda não definido',3)]}},
+ {q:{id:'5.5',t:'Esses caminhos já foram testados e geraram pelo menos um contato qualificado com decisor?',p:[r('','','Sim, mais de uma oportunidade|Sim, uma oportunidade|Não')]}},
+ {q:{id:'5.6',t:'Qual o papel que a equipe imagina para a Siemens? Marque todas que se aplicam e indique qual é o principal.',p:[c('','','Canal de vendas ou acesso a clientes da Siemens|Parceira tecnológica (integração com produtos Siemens)|Apoio técnico ou de engenharia|Cliente|Investidora|Visibilidade e reputação|Ainda não avaliamos|'+OUT),t('princ','Papel principal (escreva qual das opções acima)')]}},
+ {q:{id:'5.7',t:'Esse papel já foi discutido com alguma área da Siemens? Marque a situação mais avançada.',p:[r('','','Sim, com área de negócio, e há um próximo passo concreto com data marcada (reunião com cliente, proposta, teste de integração)|Sim, com área de negócio, sem próximo passo definido|Sim, apenas com a equipe do programa Tech4Amazonia|Não'),
+  t('area','Se sim, área','','h'),t('cargo','Cargo da pessoa','','h'),t('data','Data da conversa','dd/mm/aaaa','h'),t('prox','Próximo passo e data','','h')],n:['Esta resposta será confirmada com o responsável Siemens da PoC.']}},
+ {q:{id:'5.8',t:'Se a Siemens não participasse, a solução teria outro caminho viável até o mercado?',p:[r('','','Sim, identificado|Talvez|Não'),t('desc','Se sim, descreva brevemente')]}}
+]},
+
+{k:'6',title:'Recursos e financiamento',items:[
+ {q:{id:'6.1',t:'Com os recursos disponíveis hoje, por quantos meses a equipe consegue manter o desenvolvimento da solução?',p:[r('','','Menos de 6|De 6 a 12|De 12 a 18|Mais de 18')],n:['As fontes desses recursos aparecem na tabela 6.3.']}},
+ {q:{id:'6.2',t:'Editais e programas de fomento: quantos a equipe já identificou como adequados à solução, e qual a situação da candidatura mais avançada?',p:[
+  r('id','Identificados','0|1|2 ou mais'),t('nomes','Se 1 ou mais, liste os nomes'),
+  r('cand','Candidatura mais avançada','Aprovada, com recursos ainda a receber|Submetida, em avaliação|Em preparação|Nenhuma')]}},
+ {q:{id:'6.3',t:'Que recursos a solução já recebeu? Use uma linha por tipo. Se houve mais de um recurso do mesmo tipo, indique o principal e anote os demais na coluna “Fonte”. A fonte pode ser informada pelo nome ou só pela categoria (por exemplo: “fundação estadual de amparo à pesquisa”, “investidor-anjo”).',
+  rw:[['a','Fomento ou subvenção (FINEP, fundações de amparo à pesquisa, EMBRAPII, BNDES, editais)'],['b','Investimento em participação (investidor-anjo, fundo, aceleradora, empresa)'],['c','Empréstimo ou financiamento reembolsável'],['d','Prêmios e programas de aceleração com recursos'],['e','Recursos próprios dos sócios ou da instituição de origem']].map(([id,l])=>({id,l:id+') '+l,f:[
+    r('rec','Recebeu?',YN),t('fonte','Fonte','','h'),t('ano','Ano','','s'),
+    r('valor','Valor','Até R$ 100 mil|R$ 100 a 500 mil|R$ 500 mil a 2 milhões|Mais de R$ 2 milhões'),r('exec','Ainda em execução?',YN)]}))}},
+ {q:{id:'6.4',t:'Algum desses recursos traz condições que afetam novas parcerias ou o uso da tecnologia? (marque todas que se aplicam)',p:[c('','','Exclusividade com algum parceiro ou cliente|Direitos de terceiros sobre a propriedade intelectual|Direito de preferência ou de veto em novas parcerias ou investimentos|Contrapartida financeira ou de entregas|Restrição a financiar a mesma atividade com outros recursos|Nenhuma|Não sabemos'),a('desc','Se marcou alguma condição, descreva brevemente')]}},
+ {q:{id:'6.5',t:'Existe processo de captação de investimento em andamento (investidor privado, fundo, aceleradora)?',p:[r('','','Em negociação|Em preparação|Nenhum')],n:['Captações já concluídas entram na tabela 6.3.']}},
+ {q:{id:'6.6',t:'Existe uma projeção de quando virá a primeira receita comercial?',p:[r('','','Já temos receita|Sim, em até 12 meses|Sim, entre 12 e 24 meses|Sim, em mais de 24 meses|Não')],n:['A projeção entra na planilha financeira (6.9), se existir.']}},
+ {q:{id:'6.7',t:'Quais destes materiais a equipe tem para apresentar a investidores ou financiadores? Marque uma opção por linha.',
+  g:{cols:['Sim','Em preparação','Não','Não se aplica'],rows:[['a','a) Apresentação para investidores (deck de captação)'],['b','b) Resumo executivo (uma ou duas páginas)'],['c','c) Plano de negócios'],['d','d) Projeções financeiras de 3 a 5 anos, com premissas'],['e','e) Proposta de captação: quanto precisam e como vão usar os recursos'],['f','f) Tabela de participação societária (quem é sócio e com quanto)'],['g','g) Pasta organizada com documentos societários, contratos e propriedade intelectual'],['h','h) Proposta técnica já usada em edital de fomento'],['i','i) Outro:~']]},
+  n:['A anexação desses materiais é opcional, exceto o que for pedido na 6.9. No entanto, os especialistas podem pedir para ver ou discutir algum deles no workshop. “Não se aplica” vale, por exemplo, para equipes dentro de universidades que ainda não têm empresa constituída.']}},
+ {q:{id:'6.8',t:'O impacto positivo da solução abre acesso a alguma destas fontes de financiamento ou mercados? Marque uma opção por linha.',
+  g:{cols:['Já acessamos','Pretendemos em 12 meses','Não'],rows:[['a','a) Edital ou fundo voltado à Amazônia, ao clima ou à bioeconomia'],['b','b) Investidor de impacto'],['c','c) Cliente que exige critérios ambientais ou sociais dos fornecedores'],['d','d) Créditos de carbono ou de biodiversidade']]},
+  n:['Liste os editais e fundos identificados também na pergunta 6.2.']}},
+ {q:{id:'6.9',t:'Anexo obrigatório, se existir: planilha financeira. Anexem uma planilha com: (1) Histórico: receitas, custos, recursos recebidos e caixa de 2024, 2025 e 2026 (realizado até agora mais a estimativa até dezembro). (2) Projeção: receitas, custos, resultado e caixa dos próximos 3 anos, alinhados ao modelo de negócio do deck (pergunta 0.2), com as premissas (unidades, contratos recorrentes, preços, custos, investimentos e prazo de recebimento). Vocês podem usar o modelo de planilha entregue no kickoff ou enviar uma planilha própria com essas informações.',
+  p:[r('','','Anexada, com histórico e projeção|Anexada, com projeção e histórico só de custos (ainda não há faturamento)|Não temos planilha financeira')],
+  n:['Se não tiverem planilha, isso não reduz a avaliação, mas aparece no diagnóstico como ponto a desenvolver. A planilha fica numa subpasta visível só para os especialistas e para a facilitação do programa.']}}
+]},
+
+{k:'7',title:'Equipe',items:[
+ {q:{id:'7.1',t:'Preencha a composição atual da equipe.',tb:{cols:['Nome','Função na solução','Dedicação (horas por semana)','Vínculo (sócio, contratado, bolsista, pesquisador)','Participou da PoC com a Siemens em 2025? (Sim/Não)'],n:3,add:1}}},
+ {q:{id:'7.2',t:'Alguma pessoa que teve papel central na PoC realizada com a Siemens em 2025 deixou a equipe? (marque a opção mais próxima)',p:[r('','','Não, a equipe principal da PoC continua|Sim, mas o conhecimento foi transferido ou documentado|Sim, mas a pessoa continua colaborando (consultoria, parceria ou bolsa)|Sim, e o conhecimento não foi totalmente transferido'),t('papel','Se sim, indiquem brevemente o papel de quem saiu, sem nomes')]}},
+ {q:{id:'7.3',t:'Há na equipe alguém responsável pela área comercial, com dedicação definida?',p:[r('','','Sim, com dedicação integral|Sim, com dedicação parcial|Não')]}},
+ {q:{id:'7.4',t:'Para chegar ao mercado ou escalar, a solução pode precisar de desenvolvimento técnico, piloto com cliente, vendas e captação de recursos. Para cada competência abaixo, indique como a equipe está hoje. Marque uma opção por linha.',
+  g:{cols:['Temos na equipe','Temos com parceiro ou terceiro','Falta','Não precisamos agora'],rows:[['a','a) Desenvolvimento técnico e engenharia do produto'],['b','b) Testes, qualificação e certificação'],['c','c) Produção e cadeia de fornecedores'],['d','d) Implantação e suporte ao cliente em campo'],['e','e) Vendas para empresas e negociação com grandes clientes'],['f','f) Vendas para governo e compras públicas'],['g','g) Marketing e comunicação'],['h','h) Gestão financeira e captação com investidores'],['i','i) Elaboração de projetos para editais de fomento'],['j','j) Jurídico e propriedade intelectual'],['k','k) Regulação e licenciamento ambiental'],['l','l) Relação com comunidades e gestão de impacto socioambiental'],['m','m) Gestão de projetos e operação'],['n','n) Outra:~']]},
+  n:['Para cada competência marcada como “Temos na equipe”, indique na tabela da pergunta 7.1 quem responde por ela.']}},
+ {q:{id:'7.5',t:'O desenvolvimento da solução ou de mercado precisará também de recursos não financeiros. Indique a situação de cada um. Marque uma opção por linha.',
+  g:{cols:['Temos','Acesso por parceria','Falta','Não se aplica'],rows:[['a','a) Laboratório ou infraestrutura de testes'],['b','b) Local e cliente para o piloto'],['c','c) Equipamentos para produção'],['d','d) Espaço físico de trabalho'],['e','e) Ferramentas de software, dados e conectividade'],['f','f) Acesso ao território e às comunidades'],['g','g) Logística de transporte na região'],['h','h) Outro:~']]},
+  n:['Os recursos financeiros estão na Seção 6.']}},
+ {q:{id:'7.6',t:'Para as competências e os recursos marcados como “Falta” nas perguntas 7.4 e 7.5, existe plano de contratação ou de parcerias?',p:[r('','','Sim, com prazos|Sim, sem prazos|Não|NA. Nenhum item marcado como “Falta”'),t('lista','Se sim, liste brevemente funções ou parceiros e prazos')]}},
+ {q:{id:'7.7',t:'Como está a governança da equipe? Marque uma opção por linha.',p:[t('na','Justificativa, se marcou NA')],
+  g:{cols:['Sim, por escrito','Sim, informalmente ou em negociação','Não','NA'],rows:[['a','a) Está definido quem decide o quê dentro da equipe'],['b','b) Existe acordo entre os sócios ou entre as instituições envolvidas (acordo de sócios, acordo de cooperação)']]}}}
+]},
+
+{k:'8',title:'Impacto positivo',items:[
+ {i:'Esta seção trata dos benefícios que a solução gera ou pode gerar para a região. Os temas são os que editais, fundos e investidores de impacto costumam olhar: trabalho e renda na região, capacitação, benefícios para grupos da região, soluções baseadas na natureza e bioeconomia, descarbonização e outros benefícios ambientais. Para cada indicador, informe a situação de hoje (o que já foi medido no piloto) e a estimativa para os próximos 12 meses. Estimativas são bem-vindas, desde que venham com as premissas usadas.'},
+ {q:{id:'8.1',t:'Que tipos de impacto positivo a solução gera ou pode gerar? (marque todos que se aplicam)',p:[c('','','Trabalho e renda na região (empregos, renda para produtores e fornecedores locais, etapas de maior valor feitas na região)|Capacitação de pessoas da região|Benefícios para grupos da região (mulheres, povos indígenas, quilombolas, ribeirinhos e outras comunidades tradicionais, agricultores familiares)|Soluções baseadas na natureza e bioeconomia (floresta conservada ou manejada, cadeias da sociobiodiversidade, biodiversidade)|Descarbonização (emissões de gases de efeito estufa evitadas)|Outros benefícios ambientais (água, resíduos, energia)|Nenhum|'+OUT)]}},
+ {q:{id:'8.2',t:'Para cada tipo marcado em 8.1, indique a faixa de hoje e a faixa estimada para 12 meses. Deixe em branco as linhas que não se aplicam. Os indicadores sobre grupos da região beneficiados estão na pergunta 8.7.',
+  n:['Não é preciso anexar nada nesta pergunta: o texto em cada linha indica o que sugerimos levar ao workshop para mostrar os números de hoje. Sem essa comprovação, a avaliação de impacto fica limitada a uma nota intermediária.'],
+  rw:(()=>{
+   const row=(id,l,h,e,n,ln,le)=>({id,l,n:'Podem mostrar no workshop: '+n,f:[r('hoje','Hoje (medido no piloto)',h+'|'+(ln||'Não medido')),r('est','Em 12 meses (estimado)',e+'|'+(le||'Não estimado'))]});
+   const P1='0|1 a 10|11 a 50|51 a 200|Mais de 200', HA='0|Até 100 ha|100 a 1.000 ha|1.000 a 10.000 ha|Mais de 10.000 ha', CO='0|Até 100 tCO₂e|100 a 1.000 tCO₂e|1.000 a 10.000 tCO₂e|Mais de 10.000 tCO₂e', PP='0|Até 100|100 a 1.000|1.000 a 10.000|Mais de 10.000';
+   const RS='R$ 0|Até R$ 50 mil|R$ 50 a 250 mil|R$ 250 mil a 1 milhão|Mais de R$ 1 milhão';
+   return [{grp:'Trabalho e renda na região'},
+    row('a','a) Empregos diretos na região','0|1 a 2|3 a 5|6 a 10|Mais de 10','0|1 a 5|6 a 20|21 a 50|Mais de 50','lista da equipe local do piloto (só função e município)'),
+    row('b','b) Produtores, famílias ou fornecedores locais com renda gerada pela solução',P1,P1,'lista de fornecedores ou cooperativas (podem usar códigos)'),
+    row('c','c) Renda adicional gerada para eles, por ano',RS,RS,'resumo das compras no período (volume e valor total)'),
+    {grp:'Capacitação'},
+    row('d','d) Pessoas da região capacitadas',P1,P1,'listas de presença ou certificados'),
+    {grp:'Soluções baseadas na natureza e bioeconomia'},
+    row('e','e) Área de floresta conservada ou manejada',HA,HA,'mapa ou coordenadas da área'),
+    row('f','f) Biodiversidade','Monitorada com dados|Apenas observada','Com plano de monitoramento|Sem plano','relatório de monitoramento','Não medido','Não estimado'),
+    {grp:'Descarbonização'},
+    row('g','g) Emissões evitadas, por ano',CO,CO,'memória de cálculo (em 8.3)'),
+    {grp:'Outros benefícios ambientais'},
+    row('h','h) Pessoas com melhor acesso ou qualidade da água',PP,PP,'laudos de qualidade da água antes e depois'),
+    row('i','i) Resíduos evitados ou reaproveitados, por ano','0|Até 10 t|10 a 100 t|100 a 1.000 t|Mais de 1.000 t','0|Até 10 t|10 a 100 t|100 a 1.000 t|Mais de 1.000 t','registros de pesagem ou de destinação'),
+    row('j','j) Energia economizada ou gerada de fonte renovável, por ano','0|Até 10 MWh|10 a 100 MWh|100 a 1.000 MWh|Mais de 1.000 MWh','0|Até 10 MWh|10 a 100 MWh|100 a 1.000 MWh|Mais de 1.000 MWh','medições de consumo antes e depois')];
+  })()}},
+ {q:{id:'8.3',t:'Como os números da tabela 8.2 foram obtidos? (marque a opção que vale para a maior parte deles)',p:[r('','','Medidos no piloto|Estimados com premissas documentadas|Estimados sem método definido|Não temos números')],n:['Sugerimos levar no workshop: a memória de cálculo com as premissas, inclusive das estimativas para 12 meses. Um parágrafo por indicador basta. Exemplo: “Cada unidade instalada emprega 5 pessoas da região. Com 20 unidades vendidas em 12 meses, são 100 empregos diretos.” Se houver análise de impacto social ou ambiental, também pode ser levada ou enviada.']}},
+ {sub:'Trabalho e renda na região'},
+ {q:{id:'8.4',t:'Se a solução gera empregos, eles são formais?',p:[r('','','Sim, a maioria por CLT|Sim, a maioria MEI ou PJ|Parte deles com algum grau de formalização|Não|Não sabemos|'+NA)]}},
+ {q:{id:'8.5',t:'Se a solução gera renda local, como essa renda chega aos beneficiários? (marque todas que se aplicam)',p:[c('','','Compra de matéria-prima local|Contratação de serviços locais|Preço justo ou prêmio pago ao produtor|Repartição de benefícios|Participação no negócio|Doação|'+OUT+'|NA (não se aplica)')]}},
+ {q:{id:'8.6',t:'Onde acontecem as etapas que geram mais valor na solução (por exemplo: processamento, fabricação, manutenção, análise de dados)?',p:[r('','','Na região amazônica|Parte na região e parte fora|Fora da região')]}},
+ {sub:'Benefícios para grupos da região'},
+ {q:{id:'8.7',t:'Se a solução tiver sucesso de mercado, quais destes grupos da região serão beneficiados diretamente, como trabalhadores, fornecedores, usuários ou comunidades atendidas? Preencha só as linhas que se aplicam. Não perguntamos sobre a composição da equipe.',
+  rw:(()=>{const B='Renda|Trabalho|Capacitação|Acesso a serviço (água, energia, dados)|Outro';
+   const row=(id,l)=>({id,l,f:[r('hoje','Beneficia hoje?',YN),r('fut','Beneficiará em 12 meses?',YN),r('ben','Principal benefício',B)]});
+   return [row('a','Mulheres'),row('b','Pessoas negras (pretas e pardas)'),row('c','Povos indígenas'),row('d','Comunidades quilombolas'),row('e','Ribeirinhos, extrativistas e outras comunidades tradicionais'),row('f','Agricultores familiares'),row('g','Outro grupo:~')];})()}},
+ {q:{id:'8.8',t:'Como a solução garante que esses grupos se beneficiem de forma justa? (marque todas que se aplicam)',p:[c('','','Contratação local prioritária|Capacitação dirigida a esses grupos|Participação desses grupos nas decisões sobre a solução|Consulta prévia às comunidades|Nenhum mecanismo ainda|'+NA),a('desc','Se marcou algum mecanismo, descreva brevemente')]}},
+ {sub:'Soluções baseadas na natureza e bioeconomia'},
+ {q:{id:'8.9',t:'A solução fortalece alguma cadeia da bioeconomia ou da sociobiodiversidade (por exemplo: açaí, óleos vegetais, castanha, pescado manejado, extrativismo)?',p:[r('','','Sim, diretamente|Sim, indiretamente|Não|'+NA),t('cadeia','Se sim, qual cadeia?'),r('parc','Com quem é a parceria?','Cooperativa|Associação|Comunidade|Empresa|Nenhuma formal')]}},
+ {sub:'Relação entre impacto e negócio'},
+ {q:{id:'8.10',t:'Quando a solução vende mais, o impacto positivo cresce na mesma proporção?',p:[r('','','Sim, o impacto faz parte do que é vendido|Em parte|Não, o impacto é um efeito paralelo ao negócio')],n:['As perguntas sobre financiamento e mercados ligados ao impacto (editais, investidores de impacto, créditos) estão na Seção 6, na pergunta 6.8.']}}
+]},
+
+{k:'9',title:'Riscos',items:[
+ {q:{id:'9.1',t:'A solução depende de um único fornecedor para algum componente ou serviço crítico?',p:[r('','','Sim|Não|Não sabemos'),t('qual','Se sim, indique qual e se há alternativa')]}},
+ {q:{id:'9.2',t:'A solução pode substituir postos de trabalho na região?',p:[r('','','Sim|Não|Não sabemos'),r('alt','Se sim: existe alternativa prevista para essas pessoas (requalificação, novas funções)?',YN)]}},
+ {q:{id:'9.3',t:'O uso da solução exige competências digitais ou acesso à internet que o público-alvo pode não ter?',p:[r('','','Sim|Não|Não sabemos')]}},
+ {q:{id:'9.4',t:'A solução coleta ou trata dados pessoais?',p:[r('','',YN),r('lgpd','Se sim: a adequação à LGPD está documentada?','Sim|Em andamento|Não')]}},
+ {q:{id:'9.5',t:'A solução usa inteligência artificial para tomar ou recomendar decisões que afetam pessoas?',p:[r('','',YN),r('rev','Se sim: há revisão humana dessas decisões?',YN)]}},
+ {q:{id:'9.6',t:'A produção, a operação ou o descarte da solução geram impacto ambiental negativo relevante (baterias, resíduos, químicos, consumo de energia)?',p:[r('','','Sim|Não|Não sabemos'),r('plano','Se sim: existe plano de fim de vida ou de recolhimento?',YN)]}},
+ {q:{id:'9.7',t:'Há mudanças regulatórias previstas nos próximos 2 a 3 anos que possam afetar a solução?',p:[r('','','Sim|Não|Não sabemos'),t('desc','Se sim, descreva brevemente')]}},
+ {q:{id:'9.8',t:'A solução usa algum destes itens? (marque todos que se aplicam)',p:[c('','','Patrimônio genético brasileiro (plantas, animais, fungos ou microrganismos nativos, ou extratos deles)|Conhecimento tradicional associado (saberes de povos indígenas ou comunidades tradicionais)|Nenhum|Não sabemos'),
+  r('sisgen','Se marcou algum item: o acesso está cadastrado no SisGen?','Sim|Em andamento|Não'),r('rep','A repartição de benefícios está definida?','Sim|Em negociação|Não')],
+  n:['Anexo, só se marcou algum item e o cadastro existe: comprovante com o número do cadastro no SisGen.','Sugerimos levar no workshop: o acordo de repartição de benefícios.']}}
+]},
+
+{k:'10',title:'Operação na Amazônia',items:[
+ {q:{id:'10.1',t:'Em quais municípios ou regiões a solução deve operar nos primeiros 2 anos?',p:[a('','')]}},
+ {q:{id:'10.2',t:'O transporte e a manutenção da solução são viáveis nessas regiões?',p:[r('','','Sim, testado na prática|Sim, avaliado mas não testado|Há dificuldades conhecidas sem solução definida|Não avaliado')]}},
+ {q:{id:'10.3',t:'O fornecimento de energia necessário à solução é viável nessas regiões?',p:[r('','','Sim, testado na prática|Sim, avaliado mas não testado|Há dificuldades conhecidas sem solução definida|Não avaliado|'+NA)]}},
+ {q:{id:'10.4',t:'A conectividade necessária à solução é viável nessas regiões?',p:[r('','','Sim, testado na prática|Sim, avaliado mas não testado|Há dificuldades conhecidas sem solução definida|Não avaliado|'+NA)]}},
+ {q:{id:'10.5',t:'A operação ocorre dentro ou perto de alguma destas áreas? (marque todas que se aplicam)',p:[c('','','Unidade de conservação|Terra indígena|Território quilombola|Outra área com restrição ambiental|Nenhuma|Não sabemos'),
+  r('aut','Se marcou alguma área: as autorizações necessárias estão mapeadas?','Sim|Em andamento|Não'),
+  r('fund','Se a operação usa terra própria ou de parceiro: a situação fundiária está regularizada?','Sim|Em andamento|Não|NA')]}},
+ {q:{id:'10.6',t:'A solução precisa de licenças para operar no setor e na região (licenciamento ambiental, alvarás, licenças setoriais)?',p:[r('','','Sim, obtidas|Sim, em andamento|Sim, não iniciadas|Não|Não sabemos'),a('lista','Se sim, liste as principais licenças e o status de cada uma')],n:['Anexo, só se a licença ambiental foi obtida ou está em andamento: licença ou protocolo.']}},
+ {q:{id:'10.7',t:'Comunidades locais, povos tradicionais ou outros grupos vulneráveis podem ser prejudicados ou afetados pela solução?',p:[r('','','Sim|Não|Não sabemos'),a('quais','Se sim, indique quais e como'),r('dialogo','Já houve diálogo ou consulta com essas comunidades ou grupos?','Sim, realizado|Planejado|Não'),a('reunioes','Se realizado, liste as reuniões (data e comunidade)')],n:['Sugerimos levar no workshop: os registros das reuniões.']}}
+]},
+
+{k:'11',title:'Estágio atual e necessidades da equipe',items:[
+ {i:'Agora que vocês refletiram sobre todo o negócio através do formulário, queremos saber como resumem o seu estágio atual e do que mais precisam.'},
+ {q:{id:'11.1',t:'Qual das descrições abaixo representa melhor o momento do negócio hoje?',p:[r('','','Ainda estamos confirmando se o problema é importante para quem pagaria pela solução|Já confirmamos o problema e estamos buscando os primeiros clientes comprometidos|Já temos clientes comprometidos e estamos organizando uma forma repetível de vender e entregar|Já vendemos de forma repetível e estamos ampliando a operação')]}},
+ {q:{id:'11.2',t:'Na visão da equipe, qual é hoje o principal obstáculo para a solução chegar ao mercado? (marque um)',p:[r('','','Tecnologia ainda não pronta|Falta de clientes comprometidos|Modelo de negócio indefinido|Falta de recursos financeiros|Equipe incompleta|Licenças ou regulação|Logística e operação na região|'+OUT)]}},
+ {sub:'Necessidades da equipe'},
+ {i:'Queremos entender o que vocês acreditam precisar agora, antes do diagnóstico e do plano do programa. Respondam primeiro à pergunta 11.3, com suas palavras, e só depois a 11.4.'},
+ {q:{id:'11.3',t:'Liste, com suas palavras, até 5 itens de que a solução mais precisa agora para avançar em direção às metas da pergunta 0B.4. Comece pelo mais importante.',p:[t('1','Item 1 (o mais importante)'),t('2','Item 2'),t('3','Item 3'),t('4','Item 4'),t('5','Item 5')]}},
+ {q:{id:'11.4',t:'De quanto a solução precisa em recursos financeiros nos próximos 12 meses?',p:[r('','','Até R$ 100 mil|R$ 100 a 500 mil|R$ 500 mil a 2 milhões|Mais de R$ 2 milhões|Não precisamos de recursos adicionais|Ainda não calculamos'),
+  c('para','Para quê? (marque até 3)','Desenvolvimento técnico|Testes, certificação ou piloto|Produção|Contratação de pessoas|Vendas e marketing|Capital de giro|'+OUT,3)],n:['O que a equipe espera da Siemens está na pergunta 5.6.']}},
+ {q:{id:'11.5',t:'Indique o quanto a equipe concorda com cada afirmação. (1 = discordo totalmente; 5 = concordo totalmente)',
+  g:{cols:['1','2','3','4','5'],rows:[['a','a) Temos as competências técnicas necessárias para chegar ao mercado ou escalar'],['b','b) Temos uma pessoa dedicada à área comercial'],['c','c) As pessoas-chave dedicam à solução o tempo que ela precisa'],['d','d) A titularidade da tecnologia está formalizada'],['e','e) Acompanhamos as oportunidades comerciais de forma organizada, com etapas definidas'],['f','f) Conseguiríamos atender vários clientes ao mesmo tempo sem depender só dos fundadores']]}}}
+]},
+
+{k:'A',tagText:'Tabela A',title:'Registro de conversas com potenciais clientes',items:[
+ {i:'Liste as conversas relevantes, uma por linha. Podem usar códigos no lugar dos nomes (Cliente 1, Cliente 2), indicando setor e porte. Acrescentem linhas se precisar.'},
+ {q:{id:'TA',nb:1,t:'Conversas com potenciais clientes',tb:{cols:['Nº','Mês e ano','Cliente (código ou nome)','Setor e porte','Cargo da pessoa','Controla orçamento? (Sim/Não/Não sei)','Confirmou o problema como prioritário? (Sim/Não)','Falou de preço? (Sim/Não)'],n:5,num:1,add:1}}}
+]},
+
+{k:'B',tagText:'Tabela B',title:'Clientes em negociação (até 3 mais avançados)',items:[
+ {i:'Para cada cliente, marque a opção que melhor descreve a situação. Não é preciso anexar nada. O texto em cada linha mostra o que os especialistas podem perguntar no workshop. Se houver menos de 3 clientes em negociação, deixe os demais em branco.'},
+ ...[1,2,3].map(n=>({q:{id:'TB'+n,nb:1,t:'Cliente em negociação '+n,p:[t('cli','Cliente (código ou nome)','','h'),t('set','Setor e porte','','h')],
+  rw:[['a','O cliente informou quanto o problema custa para ele?','Não|Deu uma ideia geral|Informou um valor','Ordem de grandeza do valor'],
+      ['b','Quem aprova o orçamento nesse cliente?','Não sabemos|Sabemos quem é|Já nos reunimos com essa pessoa','Cargo e data da reunião'],
+      ['c','O que o cliente vai avaliar para aprovar a compra?','Não sabemos|Sabemos em parte|Temos a lista de critérios do cliente','Principais critérios'],
+      ['d','Como é o processo de decisão de compra?','Não sabemos|Conhecemos as etapas|Conhecemos etapas, responsáveis e prazo','Etapas e prazo'],
+      ['e','O cliente classificou o problema como prioritário?','Não|Como importante, sem prioridade|Como prioridade','Como a prioridade foi expressa'],
+      ['f','Há alguém dentro do cliente que defende a solução?','Não|Há alguém interessado|Há alguém que já agiu a favor (indicou, convidou, levou a proposta)','Cargo e exemplo de apoio']
+     ].map(([id,l,o,n2])=>({id,l,n:'Pode ser perguntado no workshop: '+n2,f:[r('v','',o)]}))}}))
+]},
+
+{k:'X',tagText:'Anexos',title:'Lista final de anexos',items:[
+ {q:{id:'ANX',nb:1,t:'Confira o que foi enviado para a pasta do Google Drive',
+  rw:[['1','Deck de pitch (pergunta 0.2)','Sim|Não'],['2','Evidência técnica (pergunta 1.12)','Sim|Não se aplica'],['3','Evidência comercial (pergunta 3.10)','Sim|Não se aplica'],['4','Planilha financeira (pergunta 6.9)','Sim|Não temos'],['5','Cadastro no SisGen (pergunta 9.8)','Sim|Não se aplica'],['6','Licença ambiental ou protocolo (pergunta 10.6)','Sim|Não se aplica']]
+   .map(([id,l,o])=>({id,l:id+'. '+l,f:[r('env','Enviado?',o),t('arq','Nome do arquivo','','h')]}))}}
+]},
+
+{k:'D',tagText:'Declaração',title:'Declaração',items:[
+ {q:{id:'DECL',nb:1,t:'Responsável pelo preenchimento',p:[
+  c('ok','Para concluir, clique na caixa abaixo e confirme a declaração:','Declaramos que as respostas deste formulário, inclusive as que não têm anexo, e os documentos enviados refletem a situação atual da solução.',0,true),
+  t('nome','Nome','','h'),t('cargo','Cargo','','h'),t('data','Data','dd/mm/aaaa','s')]}},
+ {send:1}
+]}
+];
+
+/* ---------- estado ---------- */
+let S={};
+try{S=JSON.parse(localStorage.getItem(LSK)||'{}')||{}}catch(e){S={}}
+const ALLQ=[];SECTIONS.forEach((s,si)=>{s.id='s'+si;s.qs=[];s.items.forEach(it=>{if(it.q){ALLQ.push(it.q);s.qs.push(it.q)}})});
+let ANS=new Set();
+const MAIS='Só se esta for a pergunta mais avançada em que vocês marcaram “sim”';
+const ATT={
+ '0.2':[1,'1_0.2_deck_pitch.pdf','Obrigatório'],
+ '1.1':[2,'2_1.1_relatorio_experimento.pdf',MAIS],
+ '1.2':[2,'2_1.2_relatorio_teste_integrado.pdf',MAIS],
+ '1.3':[2,'2_1.3_relatorio_teste_campo.pdf',MAIS],
+ '1.5':[2,'2_1.5_fotos_prototipo.pdf',MAIS],
+ '1.6':[2,'2_1.6_relatorio_piloto.pdf',MAIS],
+ '1.9':[2,'2_1.9_plano_testes.pdf',MAIS],
+ '3.10':[3,'3_3.6_contrato_anonimizado.pdf','Obrigatório, se houver registro escrito em 3.4 ou documento em 3.6'],
+ '6.9':[4,'4_6.9_planilha_financeira.xlsx','Obrigatório, se existir'],
+ '9.8':[5,'5_9.8_comprovante_sisgen.pdf','Só se marcou algum item e o cadastro existe'],
+ '10.6':[6,'6_10.6_licenca_ambiental.pdf','Só se a licença ambiental foi obtida ou está em andamento']
+};
+
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const kid=k=>'f_'+k.replace(/[^A-Za-z0-9]/g,'_');
+const rich=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+const parseOpt=s=>{const i=s.indexOf('~');return i<0?{lab:s,note:false,ph:''}:{lab:s.slice(0,i),note:true,ph:s.slice(i+1)}};
+const has=v=>Array.isArray(v)?v.length>0:(v!=null&&String(v).trim()!=='');
+
+/* ---------- montagem do HTML ---------- */
+function opts(key,list,multi,max,box){
+  const os=list.split('|').map(parseOpt);
+  const cur=S[key];
+  const isOn=o=>multi?(Array.isArray(cur)&&cur.includes(o.lab)):cur===o.lab;
+  const stack=os.some(o=>o.lab.length>44);
+  const n=multi&&max&&Array.isArray(cur)&&cur.length>=max;
+  return `<div class="opts ${stack||box?'stack':''}${box?' ckbox':''}${n?' full':''}" data-key="${esc(key)}" data-multi="${multi?1:0}"${max?` data-max="${max}"`:''} role="${multi?'group':'radiogroup'}">`+os.map((o,i)=>{
+    const id=kid(key)+'_'+i,on=isOn(o);
+    return `<label class="opt${on?' on':''}"><input type="${multi?'checkbox':'radio'}" name="${kid(key)}" id="${id}" value="${esc(o.lab)}"${on?' checked':''}><span class="ob">${esc(o.lab)}</span>${o.note?`<input type="text" class="onote" id="${id}_n" data-key="${esc(key)}#${i}" placeholder="${esc(o.ph||'Especifique')}" aria-label="${esc(o.lab)}" value="${esc(S[key+'#'+i]||'')}">`:''}</label>`;
+  }).join('')+'</div>';
+}
+function partKey(q,p,rid){return `${q.id}|${rid?rid+'.':''}${p.k}`}
+function partHTML(q,p,rid){
+  const key=partKey(q,p,rid),id=kid(key);
+  const cls='part'+(p.w==='h'?' h':'')+(p.w==='s'?' s':'');
+  let body='';
+  if(p.ty==='r')body=(p.l?`<div class="pl">${esc(p.l)}</div>`:'')+opts(key,p.o,false);
+  else if(p.ty==='c')body=(p.l?`<div class="pl">${esc(p.l)}</div>`:'')+opts(key,p.o,true,p.max,p.box)+(p.max?`<div class="mx">Marque até ${p.max}.</div>`:'');
+  else if(p.ty==='t')body=(p.l?`<label class="pl" for="${id}">${esc(p.l)}</label>`:'')+`<input type="text" id="${id}" data-key="${esc(key)}" placeholder="${esc(p.ph||'')}" value="${esc(S[key]||'')}">`;
+  else body=(p.l?`<label class="pl" for="${id}">${esc(p.l)}</label>`:'')+`<textarea id="${id}" data-key="${esc(key)}" placeholder="${esc(p.ph||'')}">${esc(S[key]||'')}</textarea>`;
+  return `<div class="${cls}">${body}</div>`;
+}
+function labelHTML(key,lab){
+  const nl=lab.endsWith('~'); const txt=nl?lab.slice(0,-1):lab;
+  return esc(txt)+(nl?`<input type="text" id="${kid(key)}_l" data-key="${esc(key)}#l" placeholder="Qual?" aria-label="${esc(txt)}" value="${esc(S[key+'#l']||'')}">`:'');
+}
+function gridHTML(q){
+  const g=q.g,list=g.cols.join('|');
+  return '<div class="rws">'+g.rows.map(([rid,lab])=>{
+    const key=`${q.id}|${rid}`;
+    return `<div class="rw"><div class="rl">${labelHTML(key,lab)}</div>${opts(key,list,false)}</div>`;
+  }).join('')+'</div>';
+}
+function tbHTML(q){
+  const tb=q.tb,n=+S[q.id+'|n']||tb.n;
+  let h=`<div class="tw"><table class="data"><thead><tr>${tb.cols.map(x=>`<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>`;
+  for(let i=0;i<n;i++){
+    h+='<tr>';
+    tb.cols.forEach((col,j)=>{
+      if(tb.num&&j===0){h+=`<th scope="row" class="n">${i+1}</th>`;return}
+      const key=`${q.id}|r${i}c${j}`,id=kid(key);
+      h+=`<td>${tb.ta?`<textarea id="${id}" data-key="${key}" aria-label="${esc(col+' '+(i+1))}">${esc(S[key]||'')}</textarea>`:`<input type="text" id="${id}" data-key="${key}" aria-label="${esc(col+' '+(i+1))}" value="${esc(S[key]||'')}">`}</td>`;
+    });
+    h+='</tr>';
+  }
+  h+='</tbody></table></div>';
+  if(tb.add)h+=`<button type="button" class="btn sm" data-add="${esc(q.id)}">+ Adicionar linha</button>`;
+  return h;
+}
+function rwHTML(q){
+  return '<div class="rws">'+q.rw.map(rw=>{
+    if(rw.grp)return `<h4 class="grp">${esc(rw.grp)}</h4>`;
+    const key=`${q.id}|${rw.id}`;
+    return `<div class="rw"><div class="rl">${labelHTML(key,rw.l)}</div><div class="rf">${rw.f.map(p=>partHTML(q,p,rw.id)).join('')}</div>${rw.n?`<p class="hint">${esc(rw.n)}</p>`:''}</div>`;
+  }).join('')+'</div>';
+}
+function infoTab(tab){
+  return `<div class="tw"><table class="info"><thead><tr>${tab.cols.map(x=>`<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>${tab.rows.map(rw=>`<tr>${rw.map(x=>`<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+function hintHTML(n){
+  return `<p class="hint">${esc(n).replace(/^(Sugerimos levar no workshop:|Evidência[^:]*:|Anexo[^:]*:)/,'<strong>$1</strong>')}</p>`;
+}
+function attHTML(q){
+  const a=ATT[q.id];if(!a)return '';
+  const pre=a[1].split('_').slice(0,2).join('_')+'_';
+  return `<div class="att"><div class="at">Anexo ${a[0]}: ${esc(a[2])}</div><p>Esta página não recebe arquivos. Envie o documento para a <strong>pasta da PoC no Google Drive</strong>, indicada no kickoff${CONFIG.drive?` (<a href="${esc(CONFIG.drive)}" target="_blank" rel="noopener">abrir a pasta</a>)`:''}. O nome do arquivo deve começar por <code>${esc(pre)}</code>. Exemplo: <code>${esc(a[1])}</code><button type="button" class="btn sm" data-copy="${esc(a[1])}">Copiar nome</button></p>${opts(q.id+'|anexo','Já enviei este anexo para a pasta do Drive',true)}</div>`;
+}
+function qHTML(q){
+  return `<article class="q${ANS.has(q.id)?' done':''}" id="q-${kid(q.id)}" data-qid="${esc(q.id)}"><h3><span class="qid">${q.nb?'':esc(q.id)}</span><span>${esc(q.t)}</span></h3>`+
+   (q.tab?infoTab(q.tab):'')+(q.p?`<div class="parts">${q.p.map(p=>partHTML(q,p)).join('')}</div>`:'')+
+   (q.g?gridHTML(q):'')+(q.tb?tbHTML(q):'')+(q.rw?rwHTML(q):'')+(q.n||[]).map(hintHTML).join('')+attHTML(q)+'</article>';
+}
+function importHTML(){
+  return `<div class="info"><button type="button" class="btn bLoad">Retomar preenchimento a partir de um arquivo salvo</button><p class="hint">Use este botão só se você já salvou antes o arquivo de respostas (.json) deste formulário. Ele não serve para enviar anexos.</p><p class="impmsg" role="status"></p></div>`;
+}
+function sendHTML(){
+  return `<div class="send" id="send"><h2>Revisar e enviar</h2>
+  <p id="sumtxt"></p>
+  <div id="wlist"></div>
+  <p id="howto"></p>
+  <div class="acts">
+   <button type="button" class="btn pri" id="bSend" hidden>Enviar respostas</button>
+   <button type="button" class="btn${'' }" id="bJson">Salvar respostas em arquivo</button>
+   <button type="button" class="btn" id="bTxt">Salvar em texto (.txt)</button>
+   <button type="button" class="btn" id="bCopy">Copiar respostas</button>
+   <button type="button" class="btn bLoad">Retomar preenchimento de um arquivo</button>
+  </div>
+  <p class="impmsg" role="status"></p>
+  <div id="status" role="status"></div>
+  <textarea id="fallback" readonly aria-label="Respostas em texto"></textarea>
+  <p class="foot">As respostas ficam salvas neste navegador. <button type="button" id="bClear">Limpar todas as respostas</button></p></div>`;
+}
+function build(){
+  let h='';
+  SECTIONS.forEach((s,i)=>{
+    h+=`<section class="sec" id="${s.id}"><header><span class="tag">${esc(s.tagText||(s.k?'Seção '+s.k:''))}</span><h2>${esc(s.title)}</h2></header>`;
+    const its=i===0?[s.items[0],s.items[s.items.length-1],{open:1},...s.items.slice(1,-1),{close:1}]:s.items;
+    its.forEach(it=>{
+      if(it.open)h+='<details class="pre"><summary>Leia as instruções antes de começar</summary><div class="preb">';
+      else if(it.close)h+='</div></details>';
+      else if(it.i)h+=`<p class="info${i===0?'':' intro'}">${rich(it.i)}</p>`;
+      else if(it.sub)h+=`<h3 class="sub">${esc(it.sub)}</h3>`;
+      else if(it.tab)h+=infoTab(it.tab);
+      else if(it.dyn==='imp')h+=importHTML();
+      else if(it.dyn)h+=`<p class="info"><strong>Prazo de entrega:</strong> ${esc(CONFIG.prazo||'a definir no kickoff')} (2 semanas após o kickoff)<br><strong>Contato para dúvidas:</strong> ${esc(CONFIG.contato||'informado no kickoff')}</p>`;
+      else if(it.q)h+=qHTML(it.q);
+      else if(it.send)h+=sendHTML();
+    });
+    h+='</section>';
+  });
+  $('#form').innerHTML=h;
+  $('#toc').innerHTML=SECTIONS.map(s=>`<a href="#${s.id}" data-s="${s.id}"><span>${esc(s.tagText||(s.k?'Seção '+s.k:s.title))}${s.k&&!s.tagText?'':''}</span><span class="c" data-c="${s.id}"></span></a>`).join('');
+  setTimeout(refreshWarnings,0);
+  $('#jump').innerHTML=SECTIONS.map(s=>`<option value="${s.id}">${esc(s.tagText===s.title?s.title:(s.tagText||(s.k?'Seção '+s.k:''))+(s.tagText||s.k?' · ':'')+s.title)}</option>`).join('');
+}
+function $(s,r){return (r||document).querySelector(s)}
+
+/* ---------- progresso ---------- */
+function computeAns(){
+  ANS=new Set();
+  for(const k in S){
+    if(k.indexOf('|')<0||k.endsWith('|n')||!has(S[k]))continue;
+    ANS.add(k.split('|')[0]);
+  }
+}
+function refreshProgress(){
+  computeAns();
+  document.querySelectorAll('.q').forEach(a=>a.classList.toggle('done',ANS.has(a.dataset.qid)));
+  const tot=ALLQ.filter(q=>!q.nb||q.id==='0.0').length;
+  const done=ALLQ.filter(q=>(!q.nb||q.id==='0.0')&&ANS.has(q.id)).length;
+  $('#barfill').style.width=(tot?100*done/tot:0)+'%';
+  $('#progtxt').textContent=`${done} de ${tot} perguntas respondidas`+(NW?` · ${NW} a conferir`:'');
+  SECTIONS.forEach(s=>{
+    const qs=s.qs.filter(q=>!q.nb||q.id==='0.0');const el=$(`[data-c="${s.id}"]`);
+    if(el)el.textContent=qs.length?`${qs.filter(q=>ANS.has(q.id)).length}/${qs.length}`:'';
+  });
+  const sum=$('#sumtxt');if(sum)sum.textContent=`Você respondeu ${done} de ${tot} perguntas. Respostas “não” ou “ainda não” são normais neste estágio; pode enviar com perguntas em branco.`;
+}
+let saveT;
+function changed(){
+  clearTimeout(saveT);
+  saveT=setTimeout(()=>{
+    try{localStorage.setItem(LSK,JSON.stringify(S));$('#savetxt').textContent='Rascunho salvo '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
+    catch(e){$('#savetxt').textContent='Não foi possível salvar neste navegador'}
+  },350);
+  refreshProgress();
+  clearTimeout(wT);wT=setTimeout(refreshWarnings,250);
+}
+let toastT;
+function toast(m){const e=$('#toast');e.textContent=m;e.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('on'),4500)}
+
+/* ---------- eventos ---------- */
+function sync(w){w.querySelectorAll('input[type=radio],input[type=checkbox]').forEach(i=>{const l=i.closest('.opt');if(l)l.classList.toggle('on',i.checked)})}
+document.addEventListener('click',e=>{
+  const cp=e.target.closest&&e.target.closest('[data-copy]');
+  if(cp){const v=cp.dataset.copy;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>toast('Nome copiado: '+v),()=>toast('Copie o nome manualmente: '+v));return}
+  const i=e.target;
+  if(i.matches&&i.matches('input[type=radio]')){
+    const w=i.closest('.opts');if(!w)return;const key=w.dataset.key;
+    if(S[key]===i.value){delete S[key];i.checked=false}else S[key]=i.value;
+    sync(w);changed();return;
+  }
+  const add=i.closest&&i.closest('[data-add]');
+  if(add){
+    const q=ALLQ.find(x=>x.id===add.dataset.add),k=q.id+'|n';
+    S[k]=(+S[k]||q.tb.n)+1;
+    const art=add.closest('.q');art.outerHTML=qHTML(q);changed();
+  }
+});
+document.addEventListener('change',e=>{
+  const i=e.target;
+  if(i.id==='jump'){location.hash=i.value;return}
+  if(!i.matches('input[type=checkbox]'))return;
+  const w=i.closest('.opts');if(!w)return;
+  const ex=EXCL[w.dataset.key];
+  if(ex&&i.checked){w.querySelectorAll('input[type=checkbox]').forEach(b=>{if(b===i)return;if(ex.includes(i.value)||ex.includes(b.value))b.checked=false})}
+  const vals=[...w.querySelectorAll('input[type=checkbox]')].filter(x=>x.checked).map(x=>x.value);
+  const max=+w.dataset.max||0;
+  if(max&&vals.length>max){i.checked=false;toast(`Marque no máximo ${max} opções.`);return}
+  if(vals.length)S[w.dataset.key]=vals;else delete S[w.dataset.key];
+  if(max)w.classList.toggle('full',vals.length>=max);
+  sync(w);changed();
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(!t.dataset||!t.dataset.key||!t.matches('input[type=text],textarea'))return;
+  if(has(t.value))S[t.dataset.key]=t.value;else delete S[t.dataset.key];
+  changed();
+});
+
+
+/* ---------- consistência das respostas ---------- */
+const EXCL={'5.2|':['Nada específico por enquanto'],'5.4|':['Ainda não definido'],'5.6|':['Ainda não avaliamos'],'6.4|':['Nenhuma','Não sabemos'],'8.1|':['Nenhum'],'8.5|':['NA (não se aplica)'],'8.8|':['Nenhum mecanismo ainda','NA (não se aplica)'],'9.8|':['Nenhum','Não sabemos'],'10.5|':['Nenhuma','Não sabemos']};
+const FU=[['1.1',['Não'],['data','local']],['1.2',['Não'],['data','local']],['1.3',['Não'],['data','local']],['1.4',['Não','Só houve uma rodada'],['rod']],['1.5',['Não, o protótipo ainda é bem diferente da versão final'],['data']],['1.6',['Não'],['tempo','unid','local','periodo']],['1.8',['Não'],['data','local','pub']],['1.9',['Não'],['conc']],['3.3',['Não'],['ordem']],['3.5',['Não'],['alt']],['3.9',['Não'],['desc']],['4.3',['Não'],['preco','por']],['5.1',['Não'],['conc','dif']],['5.3',['Não'],['lista']],['5.8',['Não'],['desc']],['7.2',['Não, a equipe principal da PoC continua'],['papel']],['8.9',['Não'],['cadeia','parc']],['9.1',['Não'],['qual']],['9.2',['Não'],['alt']],['9.4',['Não'],['lgpd']],['9.5',['Não'],['rev']],['9.6',['Não'],['plano']],['9.7',['Não'],['desc']],['10.6',['Não'],['lista']],['10.7',['Não'],['quais','dialogo','reunioes']]];
+const FUM=[['6.4|',['Nenhuma','Não sabemos'],['desc']],['8.8|',['Nenhum mecanismo ainda'],['desc']],['9.8|',['Nenhum','Não sabemos'],['sisgen','rep']],['10.5|',['Nenhuma','Não sabemos'],['aut']]];
+let NW=0,WL=[];
+const num=x=>{if(!has(x))return NaN;let t=String(x).replace(/[^0-9.,]/g,'');if(t.indexOf(',')>=0)t=t.replace(/\./g,'').replace(',','.');else if(/^\d{1,3}(\.\d{3})+$/.test(t))t=t.replace(/\./g,'');return parseFloat(t)};
+function checks(){
+  const W=[],add=(qs,m)=>W.push({qs:[].concat(qs),m});
+  const v=(id,k)=>S[id+'|'+(k||'')];
+  const sv=(id,k)=>{const x=v(id,k);return typeof x==='string'?x:''};
+  const av=(id,k)=>{const x=v(id,k);return Array.isArray(x)?x:[]};
+  const no=id=>sv(id).startsWith('Não'),yes=id=>sv(id).startsWith('Sim'),f=(id,k)=>has(v(id,k));
+
+  /* Seção 1: maturidade da tecnologia */
+  const ord=['1.1','1.2','1.3','1.5','1.6','1.9'];
+  ord.forEach((q,i)=>{if(!yes(q))return;for(let j=i-1;j>=0;j--)if(no(ord[j])){add([q,ord[j]],`Em ${q} você marcou “Sim”, mas em ${ord[j]} marcou “Não”. Um teste mais avançado costuma depender dos anteriores. Confira.`);break}});
+  const hi=ord.filter(yes).pop(),e12=sv('1.12');
+  if(e12){const none=e12.startsWith('Nenhuma');
+    if(none&&hi)add(['1.12',hi],`Em 1.12 você indicou que não há “Sim” na Seção 1, mas marcou “Sim” em ${hi}.`);
+    else if(!none&&!hi)add('1.12',`Em 1.12 você indicou o anexo da pergunta ${e12}, mas não marcou “Sim” em nenhuma pergunta dessa lista.`);
+    else if(!none&&e12!==hi)add(['1.12',hi],`O anexo de 1.12 deve ser o da pergunta mais avançada com “Sim”. Pelas suas respostas, é a ${hi}, mas você indicou a ${e12}.`)}
+  if(yes('1.6')&&sv('1.7')==='Não houve operação no local real')add(['1.6','1.7'],'Em 1.6 você disse que a solução já operou no local real, mas em 1.7 marcou que não houve operação no local real.');
+  if(no('1.6')&&sv('1.7')&&sv('1.7')!=='Não houve operação no local real')add(['1.6','1.7'],'Em 1.6 você marcou que a solução não operou no local real, mas respondeu em 1.7 quem a operava.');
+  if(no('1.6')&&sv('1.8').startsWith('Sim, em uso real'))add(['1.6','1.8'],'Em 1.8 você marcou demonstração em uso real, mas em 1.6 marcou que a solução não operou no local real.');
+  const L10=['A ideia central','As partes funcionam','Funciona em condições','Um protótipo','Funcionou no local real, operada pela nossa','Funcionou no local real, operada pelo cliente','A versão final está qualificada','Já está em operação comercial'];
+  const lv=L10.findIndex(x=>sv('1.10').startsWith(x));
+  if(lv>=0){
+    const mq=['1.1','1.2','1.3','1.5','1.6','1.6','1.9'][lv];
+    if(mq&&lv<6&&no(mq))add(['1.10',mq],`Em 1.10 você indicou um ponto da escala que exige “Sim” em ${mq}, mas em ${mq} marcou “Não”.`);
+    if(lv>=6&&f('1.9')&&!yes('1.9'))add(['1.10','1.9'],'Em 1.10 você indicou versão final qualificada ou operação comercial, mas em 1.9 não marcou “Sim”.');
+    if(lv>=4&&no('1.6'))add(['1.10','1.6'],'Em 1.10 você indicou que a solução funcionou no local real, mas em 1.6 marcou “Não”.');
+    if(lv===5&&f('1.7')&&!['Os futuros usuários (cliente ou comunidade)','Os dois'].includes(sv('1.7')))add(['1.10','1.7'],'Em 1.10 você indicou operação pelo cliente ou usuário, mas em 1.7 não marcou os futuros usuários como operadores.');
+    if(lv===7&&f('6.6')&&sv('6.6')!=='Já temos receita')add(['1.10','6.6'],'Em 1.10 você indicou operação comercial com clientes pagantes, mas em 6.6 não marcou “Já temos receita”.');
+    if(lv===7&&sv('3.6')==='Nenhum')add(['1.10','3.6'],'Em 1.10 você indicou operação comercial com clientes pagantes, mas em 3.6 marcou que não há documento de compromisso.');
+  }
+
+  /* Seção 0 e 2 */
+  if(sv('0.1').startsWith('Hardware')){
+    ['2.5','2.6','2.7'].forEach(q=>{if(sv(q).startsWith('NA'))add(['0.1',q],`Em 0.1 você marcou hardware, mas em ${q} respondeu NA (não se aplica).`)});
+    ['2.8','2.9'].forEach(q=>{if(sv(q,'st').startsWith('NA'))add(['0.1',q],`Em 0.1 você marcou hardware, mas em ${q} respondeu NA (não se aplica).`)});
+  }
+  if(['Nenhuma','Em avaliação'].includes(sv('2.1'))&&(f('2.1','num')||f('2.1','tit')))add('2.1','Em 2.1 você marcou que não há proteção, mas preencheu número de pedido ou titular.');
+  if(sv('2.1')==='Nenhuma'&&av('5.2').includes('Patente ou segredo industrial'))add(['2.1','5.2'],'Em 5.2 você citou patente ou segredo industrial como barreira à cópia, mas em 2.1 marcou que não há proteção.');
+  const n8=num(v('2.8','v')),n9=num(v('2.9','v'));
+  if(isFinite(n8)&&isFinite(n9)&&n9>n8)add(['2.8','2.9'],'O custo por unidade em lote maior (2.9) está acima do custo atual (2.8). Em escala o custo costuma cair. Confira.');
+
+  /* Seção 3 */
+  const rng={'0':[0,0],'1 a 4':[1,4],'5 a 9':[5,9],'10 ou mais':[10,1e9]};
+  const nTA=+S['TA|n']||5;let taRows=0,taDec=0;
+  for(let i=0;i<nTA;i++){let any=false;for(let j=1;j<8;j++)if(has(S[`TA|r${i}c${j}`]))any=true;if(any)taRows++;if(String(S[`TA|r${i}c5`]||'').trim().toLowerCase()==='sim')taDec++}
+  const dr=rng[sv('3.1','dec')];
+  if(dr&&taRows&&(taDec<dr[0]||taDec>dr[1]))add(['3.1','TA'],`Em 3.1 você informou ${sv('3.1','dec')} decisores, mas a Tabela A tem ${taDec} linha(s) com “Controla orçamento? Sim”. Os dois números devem coincidir.`);
+  if(sv('3.1','usu')==='0'&&sv('3.1','inf')==='0'&&sv('3.1','dec')==='0'&&((sv('3.2')&&sv('3.2')!=='Nenhuma')||(sv('3.8')&&sv('3.8')!=='Nenhum')||(sv('3.7')&&sv('3.7')!=='0')||yes('3.4')))add('3.1','Em 3.1 você informou que não conversou com ninguém, mas respondeu perguntas que dependem dessas conversas (3.2, 3.4, 3.7 ou 3.8).');
+  const docs=['Contrato assinado','Piloto pago, com contrato ou pedido de compra','Carta de intenção de compra assinada pelo cliente'];
+  if(docs.includes(sv('3.6'))&&sv('3.4')==='Não')add(['3.4','3.6'],'Em 3.6 você tem documento de compromisso com cliente, mas em 3.4 marcou que nenhum decisor declarou que pagaria.');
+  const strong=sv('3.4').startsWith('Sim, por escrito')||docs.includes(sv('3.6'))||sv('3.6').startsWith('Memorando')||sv('3.6').startsWith('Proposta');
+  const e310=sv('3.10');
+  if(e310.startsWith('Nenhuma')&&(sv('3.4').startsWith('Sim, por escrito')||(sv('3.6')&&!['Nenhum'].includes(sv('3.6'))&&!sv('3.6').startsWith('Preço indicativo'))))add(['3.10','3.4','3.6'],'Em 3.10 você marcou que não há documento, mas 3.4 ou 3.6 indicam registro escrito. O anexo comercial é obrigatório nesse caso.');
+  if(e310==='3.6'&&(sv('3.6')==='Nenhum'||sv('3.6').startsWith('Preço indicativo')))add(['3.10','3.6'],'Em 3.10 você indicou um documento de 3.6, mas em 3.6 marcou que não há documento de compromisso.');
+  if(e310==='3.4'&&f('3.4')&&!sv('3.4').startsWith('Sim, por escrito'))add(['3.10','3.4'],'Em 3.10 você indicou o registro escrito de 3.4, mas em 3.4 não marcou declaração por escrito.');
+  let tbN=0;for(let n=1;n<=3;n++)if(Object.keys(S).some(k=>k.startsWith('TB'+n+'|')&&has(S[k])))tbN++;
+  if(sv('3.7')==='0'&&tbN)add(['3.7','TB1'],'Em 3.7 você informou 0 clientes em negociação, mas preencheu a Tabela B.');
+  if(f('3.7')&&sv('3.7')!=='0'&&!tbN)add(['3.7','TB1'],'Em 3.7 você informou clientes em negociação, mas a Tabela B está vazia.');
+  if((sv('3.7')==='1'&&tbN>1)||(sv('3.7')==='2'&&tbN>2))add(['3.7','TB1'],`Em 3.7 você informou ${sv('3.7')} cliente(s) em negociação, mas a Tabela B tem ${tbN} preenchidos.`);
+
+  /* Seção 4 */
+  if(sv('4.3')==='Não'&&f('4.4')&&sv('4.4')!=='Não foi apresentado')add(['4.3','4.4'],'Em 4.3 você marcou que não há preço definido, mas em 4.4 informou a reação dos clientes ao preço.');
+  if(sv('4.3')==='Não'&&sv('4.6')==='Sim')add(['4.3','4.6'],'Em 4.6 você marcou margem positiva, mas em 4.3 marcou que não há preço definido.');
+  if(sv('4.6')==='Sim'&&sv('2.8','st')==='Ainda não calculado')add(['2.8','4.6'],'Em 4.6 você marcou margem positiva, mas em 2.8 o custo de produção ainda não foi calculado.');
+  if(sv('4.1')==='Ainda não definido'&&sv('4.2')&&sv('4.2')!=='Ainda não apresentamos')add(['4.1','4.2'],'Em 4.1 o modelo de receita ainda não está definido, mas em 4.2 você informou a reação dos clientes a ele.');
+
+  /* Seção 5 */
+  if(av('5.4').includes('Ainda não definido')&&sv('5.5').startsWith('Sim'))add(['5.4','5.5'],'Em 5.5 você disse que os caminhos até os clientes já geraram oportunidades, mas em 5.4 marcou que eles ainda não estão definidos.');
+  if(sv('5.7').startsWith('Sim')&&av('5.6').includes('Ainda não avaliamos'))add(['5.6','5.7'],'Em 5.7 você disse que o papel da Siemens já foi discutido, mas em 5.6 marcou “Ainda não avaliamos”.');
+
+  /* Seção 6 */
+  const q63=ALLQ.find(q=>q.id==='6.3');
+  q63.rw.forEach(r=>{const x=k=>sv('6.3',r.id+'.'+k);
+    if(x('rec')==='Não'&&(has(S['6.3|'+r.id+'.fonte'])||has(S['6.3|'+r.id+'.ano'])||x('valor')||x('exec')))add('6.3',`Em 6.3, linha ${r.id}), você marcou “Recebeu? Não”, mas preencheu fonte, ano, valor ou execução.`);
+    if(x('rec')==='Sim'&&!x('valor'))add('6.3',`Em 6.3, linha ${r.id}), você marcou “Recebeu? Sim”, mas não escolheu o valor.`)});
+  if(sv('6.2','id')==='0'&&(f('6.2','nomes')||(sv('6.2','cand')&&sv('6.2','cand')!=='Nenhuma')))add('6.2','Em 6.2 você informou 0 editais identificados, mas listou nomes ou uma candidatura em andamento.');
+  if(sv('6.6')==='Já temos receita'&&sv('6.9').includes('só de custos'))add(['6.6','6.9'],'Em 6.6 você disse que já tem receita, mas em 6.9 marcou que ainda não há faturamento.');
+  if(sv('6.6')==='Já temos receita'&&sv('3.4')==='Não'&&sv('3.6')==='Nenhum')add(['6.6','3.4','3.6'],'Em 6.6 você disse que já tem receita, mas 3.4 e 3.6 indicam que não há cliente comprometido.');
+  if(sv('6.9').startsWith('Anexada')&&sv('6.7','d')==='Não')add(['6.7','6.9'],'Em 6.9 você disse que anexou a planilha com projeção, mas em 6.7 marcou “Não” para projeções financeiras.');
+
+  /* Seção 7 */
+  const L74=[...'abcdefghijklmn'],L75=[...'abcdefgh'];
+  const falta=L74.some(x=>sv('7.4',x)==='Falta')||L75.some(x=>sv('7.5',x)==='Falta');
+  const ans=L74.some(x=>sv('7.4',x))||L75.some(x=>sv('7.5',x));
+  if(sv('7.6').startsWith('NA')&&falta)add(['7.6','7.4','7.5'],'Em 7.6 você marcou que nenhum item está como “Falta”, mas há itens com “Falta” em 7.4 ou 7.5.');
+  if((yes('7.6')||sv('7.6')==='Não')&&ans&&!falta)add(['7.6','7.4','7.5'],'Em 7.6 você respondeu sobre plano para os itens em falta, mas nenhum item está como “Falta” em 7.4 ou 7.5.');
+  if(sv('7.3')==='Não'&&sv('7.4','e')==='Temos na equipe')add(['7.3','7.4'],'Em 7.3 você marcou que não há responsável comercial, mas em 7.4 (e) marcou que a equipe tem a competência de vendas.');
+  const b115=+sv('11.5','b'),d115=+sv('11.5','d'),a115=+sv('11.5','a');
+  if(sv('7.3')==='Sim, com dedicação integral'&&b115&&b115<=2)add(['7.3','11.5'],'Em 7.3 há responsável comercial em dedicação integral, mas em 11.5 (b) você discorda de que há uma pessoa dedicada à área comercial.');
+  if(sv('7.3')==='Não'&&b115>=4)add(['7.3','11.5'],'Em 7.3 você marcou que não há responsável comercial, mas em 11.5 (b) você concorda que há uma pessoa dedicada.');
+  if(['Não está definida','Não sabemos'].includes(sv('2.2'))&&d115>=4)add(['2.2','11.5'],'Em 2.2 a titularidade não está definida, mas em 11.5 (d) você concorda que ela está formalizada.');
+  if(sv('2.2').startsWith('Sim, é só nossa')&&d115&&d115<=2)add(['2.2','11.5'],'Em 2.2 a titularidade é só da equipe, mas em 11.5 (d) você discorda de que ela está formalizada.');
+  if(sv('7.4','a')==='Falta'&&a115>=4)add(['7.4','11.5'],'Em 7.4 (a) falta competência de desenvolvimento técnico, mas em 11.5 (a) você concorda que a equipe tem as competências técnicas.');
+  if(sv('7.7','a')==='NA'||sv('7.7','b')==='NA'){if(!f('7.7','na'))add('7.7','Em 7.7 você marcou NA e não escreveu a justificativa.')}
+
+  /* Seção 8 */
+  const q82=ALLQ.find(q=>q.id==='8.2'),R82={};q82.rw.forEach(r=>{if(r.id)R82[r.id]=r});
+  const ks=Object.keys(R82);
+  const meaning=(id,k)=>{const x=sv('8.2',id+'.'+k);return !!x&&!/^Não (medido|estimado)$/.test(x)};
+  const T82={trab:['a','b','c'],cap:['d'],sbn:['e','f'],carb:['g'],amb:['h','i','j']};
+  const N82={trab:'Trabalho e renda na região',cap:'Capacitação de pessoas da região',grup:'Benefícios para grupos da região',sbn:'Soluções baseadas na natureza',carb:'Descarbonização',amb:'Outros benefícios ambientais'};
+  const m81=av('8.1');
+  if(m81.length){
+    for(const t in T82){const marked=m81.some(x=>x.startsWith(N82[t]));
+      if(!marked&&T82[t].some(id=>meaning(id,'hoje')||meaning(id,'est')))add(['8.1','8.2'],`Há indicadores de “${N82[t]}” preenchidos em 8.2, mas esse tipo de impacto não está marcado em 8.1.`)}
+    if(!m81.some(x=>x.startsWith(N82.grup))&&'abcdefg'.split('').some(id=>sv('8.7',id+'.hoje')==='Sim'||sv('8.7',id+'.fut')==='Sim'))add(['8.1','8.7'],'Em 8.7 você marcou grupos beneficiados, mas em 8.1 não marcou “Benefícios para grupos da região”.');
+  }
+  const bad=[];
+  ks.forEach(id=>{const r=R82[id],ho=r.f[0].o.split('|'),es=r.f[1].o.split('|');ho.pop();es.pop();if(ho.join('|')!==es.join('|'))return;
+    const i=ho.indexOf(sv('8.2',id+'.hoje')),j=es.indexOf(sv('8.2',id+'.est'));if(i>=0&&j>=0&&j<i)bad.push(r.l.replace(/^[a-j]\) /,''))});
+  if(bad.length)add('8.2',`Em 8.2 a estimativa para 12 meses é menor que o valor de hoje em: ${bad.join('; ')}. Confira se é isso mesmo.`);
+  const anyH=ks.some(id=>meaning(id,'hoje')),anyE=ks.some(id=>meaning(id,'est')),anyAns=ks.some(id=>sv('8.2',id+'.hoje')||sv('8.2',id+'.est'));
+  if(sv('8.3')==='Não temos números'&&(anyH||anyE))add(['8.2','8.3'],'Em 8.3 você marcou que não tem números, mas preencheu faixas em 8.2.');
+  if(sv('8.3')==='Medidos no piloto'&&anyAns&&!anyH)add(['8.2','8.3'],'Em 8.3 você marcou que os números foram medidos no piloto, mas em 8.2 nenhum valor de hoje está como medido.');
+  const q87=ALLQ.find(q=>q.id==='8.7'),nb=[],dp=[];
+  q87.rw.forEach(r=>{const nm=r.l.replace(/~$/,'')+(S['8.7|'+r.id+'#l']?' '+S['8.7|'+r.id+'#l']:''),hh=sv('8.7',r.id+'.hoje'),fu=sv('8.7',r.id+'.fut'),bn=sv('8.7',r.id+'.ben');
+    if(hh==='Não'&&fu==='Não'&&bn)nb.push(nm);if(hh==='Sim'&&fu==='Não')dp.push(nm)});
+  if(nb.length)add('8.7',`Em 8.7 você marcou “Não” para hoje e para 12 meses, mas escolheu um benefício em: ${nb.join('; ')}.`);
+  if(dp.length)add('8.7',`Em 8.7 você marcou que beneficia hoje, mas não beneficiará em 12 meses: ${dp.join('; ')}. Confira.`);
+
+  /* Seção 10 e 11 */
+  if((av('10.5').includes('Terra indígena')||av('10.5').includes('Território quilombola'))&&sv('10.7')==='Não')add(['10.5','10.7'],'Em 10.5 a operação ocorre perto de terra indígena ou território quilombola, mas em 10.7 você marcou que nenhuma comunidade pode ser afetada. Confira.');
+  const s111=sv('11.1');
+  if(s111.startsWith('Já vendemos')&&((f('6.6')&&sv('6.6')!=='Já temos receita')||sv('3.6')==='Nenhum'))add(['11.1','6.6','3.6'],'Em 11.1 você disse que já vende de forma repetível, mas 6.6 ou 3.6 indicam que não há receita ou cliente comprometido.');
+  if(s111.startsWith('Já temos clientes comprometidos')&&(sv('3.6')==='Nenhum'||sv('3.4')==='Não'))add(['11.1','3.4','3.6'],'Em 11.1 você disse que já tem clientes comprometidos, mas 3.4 ou 3.6 indicam que não há compromisso.');
+  if(s111.startsWith('Ainda estamos confirmando')&&sv('6.6')==='Já temos receita')add(['11.1','6.6'],'Em 11.1 você disse que ainda confirma o problema, mas em 6.6 marcou que já tem receita.');
+  if(sv('11.2')==='Falta de recursos financeiros'&&sv('11.4')==='Não precisamos de recursos adicionais')add(['11.2','11.4'],'Em 11.2 o principal obstáculo é a falta de recursos financeiros, mas em 11.4 você marcou que não precisa de recursos adicionais.');
+  if(sv('11.2')==='Tecnologia ainda não pronta'&&lv>=6)add(['11.2','1.10'],'Em 11.2 o principal obstáculo é a tecnologia não estar pronta, mas em 1.10 você indicou versão final qualificada ou operação comercial.');
+  if(sv('11.2')==='Licenças ou regulação'&&sv('10.6')==='Não')add(['11.2','10.6'],'Em 11.2 o principal obstáculo são licenças ou regulação, mas em 10.6 você marcou que a solução não precisa de licenças.');
+  if(sv('11.4')==='Não precisamos de recursos adicionais'&&av('11.4','para').length)add('11.4','Em 11.4 você marcou que não precisa de recursos adicionais, mas escolheu para quê.');
+
+  /* Follow-ups preenchidos quando a pergunta principal é “não” */
+  FU.forEach(([q,vals,ch])=>{if(vals.includes(sv(q))&&ch.some(k=>f(q,k)))add(q,`Em ${q} você respondeu “${sv(q)}”, mas preencheu um campo que só vale para quem respondeu “sim”.`)});
+  FUM.forEach(([key,vals,ch])=>{const q=key.slice(0,-1);if(av(q).some(x=>vals.includes(x))&&ch.some(k=>f(q,k)))add(q,`Em ${q} você marcou “${av(q).filter(x=>vals.includes(x)).join(', ')}”, mas preencheu um campo que só vale para quem marcou algum item.`)});
+
+  /* NA exige justificativa */
+  ALLQ.forEach(q=>(q.p||[]).forEach(p=>{if(p.ty!=='r'&&p.ty!=='c')return;const key=partKey(q,p);
+    p.o.split('|').map(parseOpt).forEach((o,i)=>{if(!o.note||!/^NA/.test(o.lab))return;
+      const sel=p.ty==='r'?S[key]===o.lab:(Array.isArray(S[key])&&S[key].includes(o.lab));
+      if(sel&&!has(S[key+'#'+i]))add(q.id,`Em ${q.id} você marcou NA e não escreveu a justificativa breve que o formulário pede.`)})}));
+
+  /* Lista de anexos x respostas */
+  const ax=n=>sv('ANX',n+'.env');
+  if(sv('0.2')==='Não temos deck de pitch'&&ax(1)==='Sim')add(['0.2','ANX'],'Em 0.2 você marcou que não tem deck, mas na lista de anexos o deck está como enviado.');
+  if(sv('0.2').startsWith('Anexado')&&ax(1)==='Não')add(['0.2','ANX'],'Em 0.2 você marcou o deck como anexado, mas na lista de anexos ele está como não enviado.');
+  const n12=e12.startsWith('Nenhuma');
+  if(ax(2)==='Sim'&&n12)add(['1.12','ANX'],'Na lista de anexos a evidência técnica está como enviada, mas em 1.12 você marcou que não há “Sim” na Seção 1.');
+  if(ax(2)==='Não se aplica'&&e12&&!n12)add(['1.12','ANX'],'Em 1.12 você indicou um anexo técnico, mas na lista de anexos a evidência técnica está como “Não se aplica”.');
+  if(ax(3)==='Sim'&&e310.startsWith('Nenhuma'))add(['3.10','ANX'],'Na lista de anexos a evidência comercial está como enviada, mas em 3.10 você marcou que não há documento.');
+  if(ax(3)==='Não se aplica'&&e310&&!e310.startsWith('Nenhuma'))add(['3.10','ANX'],'Em 3.10 você indicou um anexo comercial, mas na lista de anexos ele está como “Não se aplica”.');
+  if(sv('6.9')==='Não temos planilha financeira'&&ax(4)==='Sim')add(['6.9','ANX'],'Em 6.9 você marcou que não tem planilha, mas na lista de anexos ela está como enviada.');
+  if(sv('6.9').startsWith('Anexada')&&ax(4)==='Não temos')add(['6.9','ANX'],'Em 6.9 você marcou a planilha como anexada, mas na lista de anexos está como “Não temos”.');
+  if(ax(5)==='Sim'&&(av('9.8').includes('Nenhum')||av('9.8').includes('Não sabemos')))add(['9.8','ANX'],'Na lista de anexos o cadastro SisGen está como enviado, mas em 9.8 você não marcou uso de patrimônio genético ou conhecimento tradicional.');
+  if(ax(6)==='Sim'&&['Não','Não sabemos','Sim, não iniciadas'].includes(sv('10.6')))add(['10.6','ANX'],'Na lista de anexos a licença está como enviada, mas em 10.6 você marcou que não há licença obtida ou em andamento.');
+  if(ax(6)==='Não se aplica'&&['Sim, obtidas','Sim, em andamento'].includes(sv('10.6')))add(['10.6','ANX'],'Em 10.6 há licença obtida ou em andamento, mas na lista de anexos ela está como “Não se aplica”.');
+  return W;
+}
+let wT;
+function refreshWarnings(){
+  let W=[];try{W=checks()}catch(err){console.error(err)}
+  WL=W;NW=W.length;
+  document.querySelectorAll('.qw').forEach(x=>x.remove());
+  const by={};W.forEach(w=>w.qs.forEach(q=>(by[q]=by[q]||[]).push(w.m)));
+  for(const id in by){const a=document.getElementById('q-'+kid(id));if(!a)continue;
+    const d=document.createElement('div');d.className='qw';d.setAttribute('role','note');
+    d.innerHTML='<strong>Confira estas respostas:</strong><ul>'+by[id].map(m=>`<li>${esc(m)}</li>`).join('')+'</ul>';a.appendChild(d)}
+  const L=$('#wlist');
+  if(L)L.innerHTML=W.length?`<h3 class="sub">Pontos para conferir (${W.length})</h3><p>Estas respostas parecem contraditórias. Isso não impede de salvar nem de enviar. Se estiver certo, pode seguir.</p><ul>`+W.map(w=>`<li><a href="#q-${kid(w.qs[0])}">${esc(w.qs[0])}</a>: ${esc(w.m)}</li>`).join('')+'</ul>':'<p class="okline">Nenhuma contradição encontrada nas respostas.</p>';
+  const pt=$('#progtxt');if(pt&&!/a conferir/.test(pt.textContent)&&NW)pt.textContent+=` · ${NW} a conferir`;
+}
+
+/* ---------- exportação ---------- */
+function valStr(key,list,multi){
+  const os=list.split('|').map(parseOpt),cur=S[key];
+  const f=lab=>{const i=os.findIndex(o=>o.lab===lab);const n=S[key+'#'+i];return n?`${lab}: ${n}`:lab};
+  if(multi)return (Array.isArray(cur)?cur:[]).map(f).join('; ');
+  return cur==null?'':f(cur);
+}
+function partVal(q,p,rid){const key=partKey(q,p,rid);return p.ty==='r'?valStr(key,p.o,false):p.ty==='c'?valStr(key,p.o,true):(S[key]||'')}
+function rowLabel(key,lab){const nl=lab.endsWith('~');return nl?lab.slice(0,-1)+' '+(S[key+'#l']||''):lab}
+function dumpQ(q){
+  const out=[`${q.nb?'':q.id+' '}${q.t}`];
+  const ln=(l,v)=>out.push(`  ${l?l+': ':''}${v||'—'}`);
+  (q.p||[]).forEach(p=>ln(p.l||'',partVal(q,p)));
+  if(q.g)q.g.rows.forEach(([rid,lab])=>ln(rowLabel(`${q.id}|${rid}`,lab),S[`${q.id}|${rid}`]));
+  if(q.tb){const n=+S[q.id+'|n']||q.tb.n;
+    for(let i=0;i<n;i++){const cells=q.tb.cols.map((col,j)=>q.tb.num&&j===0?null:(S[`${q.id}|r${i}c${j}`]?`${col}: ${S[`${q.id}|r${i}c${j}`]}`:null)).filter(Boolean);
+      if(cells.length)out.push(`  Linha ${i+1}: ${cells.join(' | ')}`)}}
+  if(ATT[q.id])ln('Anexo '+ATT[q.id][0]+' enviado ao Drive',valStr(q.id+'|anexo','Já enviei este anexo para a pasta do Drive',true)?'sim':'');
+  if(q.rw)q.rw.forEach(rw=>{if(rw.grp)return;const key=`${q.id}|${rw.id}`;
+    out.push(`  ${rowLabel(key,rw.l)}: `+rw.f.map(p=>{const v=partVal(q,p,rw.id);return (p.l?p.l+' = ':'')+(v||'—')}).join(' | '))});
+  return out.join('\n');
+}
+function dumpAll(){
+  let o=`AUTOAVALIAÇÃO TECH4AMAZÔNIA\nGerado em ${new Date().toLocaleString('pt-BR')}\n`;
+  SECTIONS.forEach(s=>{if(!s.qs.length)return;o+=`\n=== ${s.tagText||('Seção '+s.k)}. ${s.title} ===\n`;s.qs.forEach(q=>{o+='\n'+dumpQ(q)+'\n'})});
+  if(WL.length){o+='\n=== PONTOS A CONFERIR (respostas que parecem contraditórias) ===\n';WL.forEach(w=>{o+='- '+w.m+'\n'})}
+  return o;
+}
+function b64(s){const by=new TextEncoder().encode(s);let b='';for(let i=0;i<by.length;i+=8192)b+=String.fromCharCode.apply(null,by.subarray(i,i+8192));return btoa(b)}
+function dumpPaste(){return dumpAll()+'\n\n=== DADOS PARA O PAINEL (não edite o bloco abaixo) ===\n[[DADOS-T4A:'+b64(dumpJson())+':FIM]]\n'}
+function dumpJson(){return JSON.stringify({formulario:'autoavaliacao-tech4amazonia',versao:20,geradoEm:new Date().toISOString(),respostas:S},null,1)}
+function slug(){return ((S['0.0|sol']||'solucao').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'solucao')}
+function missing(){
+  const m=[];
+  if(!has(S['0.0|sol']))m.push('o nome da solução (Seção 0)');
+  if(!has(S['DECL|ok']))m.push('a marcação da declaração');
+  if(!has(S['DECL|nome']))m.push('o nome de quem declara');
+  return m;
+}
+function status(msg,cls){const s=$('#status');s.textContent=msg;s.className=cls||'';if(msg&&!/^Enviando/.test(msg))toast(msg)}
+function baixarBlob(name,data,type){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
+}
+async function saveFile(name,data){
+  if(!(window.claude&&window.claude.use)){
+    baixarBlob(name,data,name.endsWith('.json')?'application/json':'text/plain;charset=utf-8');
+    status('Arquivo salvo na pasta de downloads do navegador. Envie-o para '+(CONFIG.contato||'a equipe do programa')+'.','ok');return;
+  }
+  try{
+    const d=await (window.claude&&window.claude.use?window.claude.use('downloads'):null);
+    if(!d)throw {code:'unavailable'};
+    await d.save({filename:name,data});status('Arquivo pronto. Envie-o para a equipe do programa (veja as instruções acima).','ok');
+  }catch(e){
+    if(e&&e.code==='declined'){status('Download cancelado.');return}
+    showFallback();
+  }
+}
+function showFallback(){
+  $('#mmail').textContent=CONFIG.contato||'a equipe do programa';
+  $('#mtext').value=dumpPaste();$('#mstat').textContent='';
+  $('#modal').hidden=false;$('#mtext').focus();$('#mtext').select();
+}
+async function copyAll(){
+  const txt=dumpPaste();
+  try{await navigator.clipboard.writeText(txt);status('Respostas copiadas. Cole no corpo de um e-mail para '+(CONFIG.contato||'a equipe do programa')+'.','ok')}
+  catch(e){showFallback()}
+}
+$('#mCopy').addEventListener('click',async()=>{
+  const t=$('#mtext');
+  try{await navigator.clipboard.writeText(t.value);$('#mstat').textContent='Copiado. Agora cole no e-mail.'}
+  catch(e){t.focus();t.select();$('#mstat').textContent='Não foi possível copiar sozinho. O texto está selecionado: use Ctrl+C.'}
+});
+$('#mClose').addEventListener('click',()=>{$('#modal').hidden=true});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#modal').hidden=true});
+let canSend=false;
+async function initSend(){
+  const how=$('#howto');
+  try{
+    const db=await window.claude.use('db'),user=await window.claude.use('user');
+    if(db&&user&&user.can&&user.can('data.write')===true&&await user.id()){canSend=true}
+  }catch(e){}
+  if(canSend){
+    ['#bSend','#bSend2'].forEach(s=>{$(s).hidden=false;$(s).classList.add('pri')});
+    $('#bJson2').classList.remove('pri');
+    how.innerHTML='Clique em <strong>Enviar respostas</strong>. A equipe do programa recebe tudo direto. Se preferir, também é possível baixar uma cópia.';
+  }else{
+    $('#bJson').classList.add('pri');
+    how.innerHTML=`Clique em <strong>Salvar respostas</strong> (no topo da página ou aqui) e envie o arquivo .json para ${esc(CONFIG.contato||'a equipe do programa (contato informado no kickoff)')}, junto com os anexos, na pasta da PoC no Google Drive. Se o download não funcionar, abre uma janela com o texto das respostas: clique em <strong>Copiar tudo</strong> e cole no corpo de um e-mail. Os anexos vão à parte, para a pasta do Drive.`;
+  }
+}
+async function enviar(){
+  const m=missing();
+  if(m.length){status('Antes de enviar, falta preencher: '+m.join(', ')+'.','err');return}
+  const bs=[$('#bSend'),$('#bSend2')];bs.forEach(x=>x.disabled=true);status('Enviando…');
+  try{
+    const db=await window.claude.use('db'),user=await window.claude.use('user'),uid=await user.id();
+    const id='e'+Date.now();
+    await db.doc('respostas/'+uid).collection('envios').doc(id).set({enviadoEm:new Date().toISOString(),solucao:S['0.0|sol']||'',organizacao:S['0.0|org']||'',texto:dumpAll(),json:JSON.stringify(S)});
+    status('Respostas enviadas. Obrigado! Você pode continuar editando e enviar de novo se precisar corrigir algo.','ok');
+  }catch(e){
+    status('O envio direto não está liberado para o seu acesso. Clique em “Salvar respostas” e envie o arquivo por e-mail. Suas respostas continuam salvas aqui.','err');
+    ['#bSend','#bSend2'].forEach(s=>{$(s).hidden=true});['#bJson','#bJson2'].forEach(s=>$(s).classList.add('pri'));
+  }
+  bs.forEach(x=>x.disabled=false);
+}
+let clr=false;
+document.addEventListener('click',e=>{
+  const id=(e.target.id||'').replace(/2$/,'');
+  if(id==='bSend')enviar();
+  else if(id==='bJson'){if(missing().length&&!has(S['0.0|sol']))toast('Dica: preencha o nome da solução na Seção 0.');saveFile(`autoavaliacao-tech4amazonia-${slug()}.json`,dumpJson())}
+  else if(id==='bTxt')saveFile(`autoavaliacao-tech4amazonia-${slug()}.txt`,dumpAll());
+  else if(id==='bCopy')copyAll();
+  else if(id==='bClear'){
+    const el=e.target;if(!el.dataset.t)el.dataset.t=el.textContent;
+    if(!clr){clr=true;el.textContent='Clique de novo para apagar tudo';setTimeout(()=>{clr=false;el.textContent=el.dataset.t},4000)}
+    else{clr=false;el.textContent=el.dataset.t;S={};try{localStorage.removeItem(LSK)}catch(x){}build();refreshProgress();initSend();spy();toast('Respostas apagadas.')}
+  }
+});
+
+/* ---------- carregar respostas de um arquivo ---------- */
+let pendingImp=null;
+function impMsg(html,cls){
+  document.querySelectorAll('.impmsg').forEach(e=>{e.innerHTML=html;e.className='impmsg '+(cls||'')});
+  const m=[...document.querySelectorAll('.impmsg')].pop();
+  if(html.indexOf('<button')>=0)m.scrollIntoView({block:'center'});else toast(m.textContent);
+}
+function applyImport(o){
+  S=o;
+  try{localStorage.setItem(LSK,JSON.stringify(S))}catch(e){}
+  const y=window.scrollY;build();refreshProgress();initSend();spy();window.scrollTo(0,y);
+  $('#savetxt').textContent='Respostas carregadas do arquivo';
+  impMsg(`Preenchimento retomado (${ANS.size} perguntas com resposta). Ele já está salvo neste navegador.`,'ok');
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest&&e.target.closest('.bLoad')){$('#fileIn').value='';$('#fileIn').click();return}
+  if(e.target.id==='bReplace'&&pendingImp){const o=pendingImp;pendingImp=null;applyImport(o);return}
+  if(e.target.id==='bKeep'){pendingImp=null;impMsg('Nada foi alterado.')}
+});
+$('#fileIn').addEventListener('change',async e=>{
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  try{
+    const o=JSON.parse(await f.text()),r=o&&o.respostas;
+    if(!r||typeof r!=='object'||Array.isArray(r)||o.formulario!=='autoavaliacao-tech4amazonia')throw 0;
+    const clean={};
+    for(const k in r){const v=r[k];if(k.indexOf('|')>=0&&(typeof v==='string'||(Array.isArray(v)&&v.every(x=>typeof x==='string'))))clean[k]=v}
+    if(!Object.keys(clean).length)throw 0;
+    computeAns();
+    if(ANS.size){pendingImp=clean;impMsg('Já há respostas neste navegador. Carregar o arquivo substitui todas elas. <button type="button" class="btn sm" id="bReplace">Substituir</button> <button type="button" class="btn sm" id="bKeep">Cancelar</button>');}
+    else applyImport(clean);
+  }catch(x){impMsg('Este arquivo não é um arquivo de respostas deste formulário. Use o arquivo .json salvo pelo botão “Salvar respostas”.','err')}
+});
+
+/* ---------- navegação ---------- */
+let spyObs;
+function spy(){
+  if(spyObs)spyObs.disconnect();
+  spyObs=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting){document.querySelectorAll('nav.toc a').forEach(a=>a.classList.toggle('cur',a.dataset.s===en.target.id));const j=$('#jump');if(j)j.value=en.target.id}})},{rootMargin:'-90px 0px -70% 0px'});
+  document.querySelectorAll('.sec').forEach(s=>spyObs.observe(s));
+}
+
+build();refreshProgress();spy();initSend();
+})();
+</script>
+
+</body></html>
