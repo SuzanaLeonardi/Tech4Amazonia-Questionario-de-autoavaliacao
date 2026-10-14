@@ -3,6 +3,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 /* Layout: índice fixo à esquerda (select no celular) + coluna única de perguntas em cartões; barra de progresso no topo. */
 :root{
@@ -68,6 +69,9 @@ h3.sub{font-size:1.1rem;margin:22px 0 8px}
 .part{flex:1 1 100%;min-width:0}
 .part.h{flex:1 1 220px}
 .part.s{flex:0 1 190px}
+.part.m{flex:1 1 300px}
+.part.h,.part.s,.part.m{display:flex;flex-direction:column}
+.part.h>.pl,.part.s>.pl,.part.m>.pl{flex:1 0 auto}
 .pl{display:block;font-size:.88rem;color:var(--muted);margin-bottom:4px}
 input[type=text],textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);resize:vertical;min-width:0}
 textarea{min-height:76px}
@@ -137,6 +141,8 @@ table.grid tbody th input{margin-top:4px}
 .gc.on .ob{background:var(--accent);border-color:var(--accent);box-shadow:inset 0 0 0 4px var(--surface)}
 table.data td input,table.data td textarea{min-width:130px;min-height:0}
 table.data td textarea{min-height:60px}
+table.fx{table-layout:fixed;min-width:560px}
+table.fx td input,table.fx td textarea{min-width:0}
 table.data th.n{width:1%;white-space:nowrap}
 table.info th,table.info td{vertical-align:top}
 
@@ -193,7 +199,8 @@ table.info th,table.info td{vertical-align:top}
   <select id="jump" aria-label="Ir para a seção"></select>
   <div class="tacts" role="group" aria-label="Gravar respostas">
     <button type="button" class="btn sm" id="bSend2" hidden>Enviar</button>
-    <button type="button" class="btn sm pri" id="bJson2" title="Baixa um arquivo .json com tudo o que você preencheu, para enviar à equipe ou para continuar depois">Salvar respostas</button>
+    <button type="button" class="btn sm pri" id="bJson2" title="Baixa um arquivo .json com tudo o que vocês preencheram, para enviar à equipe ou para continuar depois">Salvar respostas</button>
+    <button type="button" class="btn sm" id="bPdf2" title="Gera um PDF com as respostas, para a startup guardar uma cópia">Baixar PDF</button>
     <button type="button" class="btn sm" id="bCopy2" title="Copia as respostas em texto">Copiar respostas</button>
     <button type="button" class="btn sm bLoad" title="Abre um arquivo de respostas salvo antes. Não serve para anexos.">Retomar preenchimento</button>
     <button type="button" class="btn sm" id="bClear2" title="Apaga todas as respostas deste navegador. Pede um segundo clique para confirmar.">Limpar respostas</button>
@@ -216,16 +223,16 @@ table.info th,table.info td{vertical-align:top}
 <div id="confirm" hidden><div class="mbox" role="alertdialog" aria-modal="true" aria-labelledby="ct">
   <h2 id="ct">Faltam itens obrigatórios</h2>
   <p id="cmsg"></p>
-  <p>Se este for o arquivo final para enviar, volte e preencha. Se for só um rascunho, pode salvar assim mesmo.</p>
+  <p>Se este for o arquivo final para enviar, voltem e preencham. Se for só um rascunho, podem salvar assim mesmo.</p>
   <div class="macts"><button type="button" class="btn pri" id="cBack">Voltar e preencher</button><button type="button" class="btn" id="cGo">Salvar assim mesmo</button></div>
 </div></div>
 <div id="modal" hidden><div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mt">
-  <h2 id="mt">Copie suas respostas e envie por e-mail</h2>
-  <p>O download de arquivo não está disponível neste acesso. Faça assim:</p>
+  <h2 id="mt">Copiem suas respostas e enviem por e-mail</h2>
+  <p>O download de arquivo não está disponível neste acesso. Façam assim:</p>
   <ol>
-    <li>Clique em <strong>Copiar tudo</strong>.</li>
-    <li>Cole o texto no corpo de um e-mail para <strong id="mmail"></strong>.</li>
-    <li>Envie os anexos, à parte, para a pasta da PoC no Google Drive.</li>
+    <li>Cliquem em <strong>Copiar tudo</strong>.</li>
+    <li>Colem o texto no corpo de um e-mail para <strong id="mmail"></strong>.</li>
+    <li>Enviem os anexos, à parte, para a pasta da startup no Google Drive.</li>
   </ol>
   <textarea id="mtext" readonly aria-label="Respostas em texto"></textarea>
   <div class="macts"><button type="button" class="btn pri" id="mCopy">Copiar tudo</button><button type="button" class="btn" id="mClose">Fechar</button></div>
@@ -244,8 +251,8 @@ const r=(k,l,o,w)=>({ty:'r',k,l,o,w});
 const c=(k,l,o,max,box)=>({ty:'c',k,l,o,max,box});
 const t=(k,l,ph,w)=>({ty:'t',k,l,ph,w});
 const a=(k,l,ph)=>({ty:'a',k,l,ph});
-const dl=()=>[t('data','Se sim: data','mm/aaaa','h'),t('local','Local','','h')];
-const NA='NA (não se aplica)~Justificativa breve';
+const dl=(onde)=>[t('data','Se sim: data (mês e ano)','mm/aaaa','h'),t('local',onde,'','h')];
+const NA='Não se aplica~Justificativa breve';
 const OUT='Outro~Qual?';
 
 const SECTIONS=[
@@ -254,15 +261,15 @@ const SECTIONS=[
  {i:'**Uso dos dados.** As informações e os anexos serão usados apenas para o diagnóstico, o plano de aceleração e a reavaliação do programa. A pasta de cada solução tem acesso restrito aos avaliadores e à equipe do programa. A planilha financeira e as perguntas sobre custos, preços e clientes em negociação (2.8, 2.9, 4.3, 6.9 e Tabela B) ficam numa subpasta visível só para os especialistas e para a facilitação do programa. Se a solução não seguir para a execução, os dados serão eliminados em até 90 dias após o Gate 1.'},
  {sub:'Como preencher'},
  {i:'Este formulário é apresentado e explicado no kickoff com a equipe do programa. Vocês têm 2 semanas, a partir do kickoff, para preenchê-lo e reunir os anexos.'},
- {i:'Responda marcando uma opção em cada pergunta. Quando houver campo numérico, de texto ou lista, seja breve. Para desfazer uma marcação, clique de novo na opção.'},
- {i:'Pedimos poucos anexos. São 4 obrigatórios, quando existirem, e até 2 que só valem se se aplicarem à solução (veja o quadro abaixo). Nas demais perguntas, a resposta marcada vale como declaração da equipe e não é preciso anexar nada. No entanto, quanto mais informações, mais rico será o diagnóstico. Assim, fiquem à vontade para enviar outros documentos que considerem relevantes para a avaliação, como planos de negócio, proposta de edital, apresentação a investidor.'},
- {i:'**Envie o que já existe.** Não é preciso criar documentos novos para este formulário. Se algo não existe, marque “não” ou “ainda não”.'},
+ {i:'Respondam marcando uma opção em cada pergunta. Quando houver campo numérico, de texto ou lista, sejam breves. Para desfazer uma marcação, cliquem de novo na opção.'},
+ {i:'Pedimos poucos anexos. São 4 obrigatórios, quando existirem, e até 2 que só valem se se aplicarem à solução (vejam o quadro abaixo). Nas demais perguntas, a resposta marcada vale como declaração da equipe e não é preciso anexar nada. No entanto, quanto mais informações, mais rico será o diagnóstico. Assim, fiquem à vontade para enviar outros documentos que considerem relevantes para a avaliação, como planos de negócio, proposta de edital, apresentação a investidor.'},
+ {i:'**Enviem o que já existe.** Não é preciso criar documentos novos para este formulário. Se algo não existe, marquem “não” ou “ainda não”.'},
  {i:'Em listas de clientes, fornecedores ou parceiros, vocês podem usar códigos no lugar dos nomes (Cliente 1, Fornecedor 2), indicando setor e porte. Os nomes só aparecem no workshop, se a equipe quiser.'},
  {i:'Algumas perguntas trazem a indicação “Sugerimos levar no workshop”. São materiais que ajudam a conversa com os especialistas, mas que não precisam ser enviados. Não mostrar não reduz a avaliação. A exceção é a Seção 8: sem comprovação dos números de impacto de hoje, enviada ou mostrada no workshop, a avaliação de impacto fica limitada a uma nota intermediária.'},
  {i:'Um anexo obrigatório que não for enviado será considerado “a verificar”. Até um dia útil antes do workshop, vocês receberão uma pauta com os pontos a esclarecer.'},
- {i:'Algumas perguntas admitem a resposta NA (não se aplica). Ela só aparece nessas perguntas e exige uma justificativa breve. Exemplo: “NA: a solução é só software, não há componentes físicos.” Nas demais perguntas, marque a opção mais próxima da realidade.'},
+ {i:'Algumas perguntas admitem a resposta “Não se aplica”. Ela só aparece nessas perguntas e exige uma justificativa breve. Exemplo: “Não se aplica: a solução é só software, não há componentes físicos.” Nas demais perguntas, marquem a opção mais próxima da realidade.'},
  {i:'**Tempo estimado:** cerca de 4 horas para o formulário, de 1 a 2 horas para reunir os anexos e de 2 a 4 horas para a planilha financeira, se a equipe ainda não tiver uma pronta. As partes podem ser preenchidas por pessoas diferentes da equipe. No total, contando o tempo de reunir as evidências, o esforço é de até 16 horas nas 2 semanas.'},
- {i:'**Salvamento.** Suas respostas ficam salvas automaticamente neste navegador, neste aparelho. Vocês podem fechar a página e voltar depois pelo mesmo link. Para continuar em outro aparelho, ou para passar o preenchimento a outra pessoa, salve o arquivo de respostas (botão “Salvar respostas”, no topo) e abra-o no outro aparelho com o botão abaixo.'},
+ {i:'**Salvamento.** Suas respostas ficam salvas automaticamente neste navegador, neste aparelho. Vocês podem fechar a página e voltar depois pelo mesmo link. Para continuar em outro aparelho, ou para passar o preenchimento a outra pessoa, salvem o arquivo de respostas (botão “Salvar respostas”, no topo) e abram-no no outro aparelho com o botão abaixo.'},
  {dyn:'imp'},
  {sub:'Anexos deste formulário'},
  {tab:{cols:['Nº','Anexo','Tipo','Onde é pedido'],rows:[
@@ -272,18 +279,16 @@ const SECTIONS=[
   ['4','Planilha financeira: histórico, se houver faturamento, e projeção de 3 anos','Obrigatório, se existir','6.9'],
   ['5','Número do cadastro no SisGen (caso exista)','Só se usar patrimônio genético ou conhecimento tradicional','9.8'],
   ['6','Licença ambiental ou protocolo','Só se a solução precisar de licença','10.6']]}},
- {i:'**Os anexos não são enviados por esta página.** Envie os arquivos para a pasta da PoC no Google Drive, indicada no kickoff. Nomeie cada arquivo com o número do anexo e da pergunta. Exemplo: 2_1.3_relatorio_teste_campo.pdf. Nas perguntas que pedem anexo, um quadro tracejado mostra o nome sugerido do arquivo e uma caixa para marcar que ele já foi enviado.'},
+ {i:'**Os anexos não são enviados por esta página.** Enviem os arquivos para a pasta da startup no Google Drive, indicada no kickoff. Nomeiem cada arquivo com o número do anexo e da pergunta. Exemplo: 2_1.3_relatorio_teste_campo.pdf. Nas perguntas que pedem anexo, um quadro tracejado mostra o nome sugerido do arquivo e uma caixa para marcar que ele já foi enviado.'},
  {dyn:'prazo'}
 ]},
 
 {k:'0',title:'Identificação',items:[
  {q:{id:'0.0',nb:1,t:'Dados da solução e da equipe',p:[
   t('sol','Nome da solução'),t('org','Organização responsável'),
-  t('contato','Pessoa de contato (nome, cargo, e-mail, telefone)'),
-  t('quem','Pessoas que preencheram este formulário'),
-  t('data','Data de preenchimento','dd/mm/aaaa','h')]}},
+  t('cnome','Pessoa de contato: nome','','m'),t('ccargo','Cargo','','m'),t('cemail','E-mail','nome@empresa.com','m'),t('ctel','Telefone','(00) 00000-0000','m')]}},
  {q:{id:'0.1',t:'A solução é composta principalmente por:',p:[r('','','Hardware (equipamento, sensor, dispositivo)|Software|Processo químico ou biológico|Material|Serviço baseado em tecnologia|Combinação~Quais?')]}},
- {q:{id:'0.2',t:'Anexe o deck de pitch mais recente da solução. Ele deve cobrir os pontos abaixo. Se faltar algum, acrescentem uma página com o que falta.',
+ {q:{id:'0.2',t:'Anexem o deck de pitch mais recente da solução. Ele deve cobrir os pontos abaixo. Se faltar algum, acrescentem uma página com o que falta.',
   tab:{cols:['Ponto','O que mostrar'],rows:[
    ['Problema','Que problema a solução resolve e para quem'],['Solução','O que a solução faz e como funciona'],
    ['Cliente-alvo','Quem compra e quem usa (tipo de organização, setor, porte)'],
@@ -291,40 +296,40 @@ const SECTIONS=[
    ['Modelo de negócio','Como a solução gera receita, principais custos, parceiros e canais (um Canvas simples serve)'],
    ['Mercado','Tamanho estimado e onde a equipe quer começar'],['Equipe','Quem são as pessoas-chave e o que cada uma faz']]},
   p:[r('','','Anexado, com todos os pontos|Anexado, com página complementar|Não temos deck de pitch')],
-  n:['Se não tiverem deck, enviem uma apresentação curta, de até 10 páginas, com os pontos da tabela. Nomeie o arquivo como 1_0.2_deck_pitch.pdf.']}}
+  n:['Se não tiverem deck, enviem uma apresentação curta, de até 10 páginas, com os pontos da tabela. Nomeiem o arquivo como 1_0.2_deck_pitch.pdf.']}}
 ]},
 
 {k:'0B',title:'Ponto de partida, ambição e metas',items:[
- {i:'Antes das perguntas sobre o que já existe, queremos entender o que aconteceu com a solução desde a PoC realizada com a Siemens em 2025 e aonde vocês querem chegar. Esta seção não gera nota própria. Os especialistas usam as respostas como contexto da avaliação. Elas servem também para construir o plano de aceleração com vocês e para alinhar o que o programa pode e o que não pode oferecer. Metas modestas e realistas são tão úteis quanto metas ambiciosas. Ter um caminho próprio, que não dependa do programa, é esperado.'},
- {q:{id:'0B.1',t:'O que foi desenvolvido na PoC realizada com a Siemens em 2025 foi incorporado à solução? (marque a opção mais próxima)',p:[
+ {i:'Antes das perguntas sobre o que já existe, queremos entender o que aconteceu com a solução desde a PoC realizada com a Siemens em 2025 e aonde vocês querem chegar. Os especialistas usam as respostas como contexto da avaliação. Elas servem também para construir o plano de aceleração com vocês e para alinhar o que o programa pode e o que não pode oferecer. Metas modestas e realistas são tão úteis quanto metas ambiciosas. O importante é ter um caminho próprio, que não dependa do programa.'},
+ {q:{id:'0B.1',t:'O que foi desenvolvido na PoC realizada com a Siemens em 2025 foi incorporado à solução? (marquem a opção mais próxima)',p:[
   r('','','Sim, está integrado à solução que oferecemos ou vamos oferecer aos clientes|Em parte: uma parte foi incorporada e o resto ficou só como teste ou foi descartado|Ainda não: continua como protótipo ou teste, separado da solução principal|Não: a solução seguiu outro caminho|A PoC é a própria solução'),
   a('desc','Descrevam brevemente o que foi incorporado e o que mudou desde a PoC')]}},
  {q:{id:'0B.2',t:'Hoje, qual é o lugar desta solução na estratégia da organização?',p:[
   r('','','É o foco principal|É uma das prioridades, junto com outras soluções ou negócios|É secundária, sem prioridade definida|Está em reavaliação (podemos mudar de rumo, pausar, licenciar ou vender)'),
   a('mud','Se mudou desde a PoC de 2025, o que mudou e por quê')]}},
- {q:{id:'0B.3',t:'Daqui a 3 anos, que situação a equipe quer alcançar com a solução? (marque a principal)',p:[
+ {q:{id:'0B.3',t:'Daqui a 3 anos, que situação a equipe quer alcançar com a solução? (marquem a principal)',p:[
   r('','','Vender de forma recorrente na região amazônica|Vender no Brasil, em mais de uma região|Vender no Brasil e no exterior|Licenciar a tecnologia para empresas que produzam e vendam|Integrar a solução ao portfólio de um parceiro industrial|Ser adquirida ou incorporada por outra empresa|Ainda não definimos|Outra~Qual?')]}},
  {q:{id:'0B.4',t:'Quais são as até 3 metas mais importantes da equipe para os próximos 12 meses? Para cada uma, indiquem como medir e o valor de hoje.',
-  tb:{cols:['Meta','Como medir (indicador)','Valor hoje','Valor em 12 meses'],n:3,num:1},
+  mt:1,tb:{cols:['Meta','Como medir (indicador)','Valor hoje','Valor em 12 meses'],n:3,num:1},
   n:['Exemplos de indicador: clientes pagantes, receita (em faixa), unidades instaladas, recursos captados (em faixa), teste ou certificação concluídos, pessoas contratadas, indicador de impacto da Seção 8.','Se essas metas já estão escritas em outro documento (pitch, plano de negócio, proposta de edital, apresentação a investidor), podem, se quiserem, anexar o documento.']}},
  {q:{id:'0B.5',t:'Como vocês esperam atingir essas metas sem o programa? Para cada meta, descrevam brevemente o caminho que já planejam seguir e com quais recursos (próprios, de parceiros ou a captar).',
-  tb:{cols:['Meta','Caminho previsto sem o programa'],n:3,num:1,ta:1}}}
+  tb:{cols:['Meta','Caminho previsto sem o programa','Origem dos recursos'],n:3,num:1,ta:1,w:[2,1]}}}
 ]},
 
 {k:'1',title:'Desenvolvimento e testes da tecnologia',items:[
- {i:'Nesta seção, basta um anexo: a evidência da pergunta mais avançada em que vocês marcaram “sim”. A ordem, da menos para a mais avançada, é 1.1, 1.2, 1.3, 1.5, 1.6 e 1.9. Nas outras perguntas com “sim”, informem só a data e o local. Os especialistas podem pedir para ver os demais registros no workshop.'},
- {q:{id:'1.1',t:'A ideia técnica central da solução já foi testada em experimento controlado, com resultados registrados?',p:[r('','',YN),...dl()],n:['Evidência, se esta for a pergunta mais avançada: relatório ou planilha com os resultados do experimento, indicando data, método e principais medições.']}},
- {q:{id:'1.2',t:'As partes da solução já funcionaram juntas, de forma integrada, em laboratório ou bancada?',p:[r('','',YN),...dl()],n:['Evidência, se esta for a pergunta mais avançada: relatório de teste integrado com as métricas de desempenho definidas antes do teste e os resultados obtidos.']}},
- {q:{id:'1.3',t:'A solução integrada já foi testada em condições que reproduzem o uso real (por exemplo: calor, umidade, chuva, água com sedimentos, energia instável, internet limitada)?',p:[r('','','Sim, em condições simuladas (câmara, tanque, bancada de estresse)|Sim, em local de teste controlado pela equipe|Não'),...dl()],n:['Evidência, se esta for a pergunta mais avançada: descrição das condições de teste, principais medições e falhas encontradas.']}},
- {q:{id:'1.4',t:'Os resultados do teste da pergunta 1.3 se repetiram em mais de uma rodada de testes?',p:[r('','','Sim|Não|Só houve uma rodada'),t('rod','Se sim, informe o número de rodadas','','s')]}},
+ {i:'Nesta seção, basta um anexo: a evidência da pergunta mais avançada em que vocês marcaram “sim”. A ordem, da menos para a mais avançada, é 1.1, 1.2, 1.3, 1.5, 1.6 e 1.9. Nas outras perguntas com “sim”, informem só a data e o local. Os especialistas podem pedir para ver os demais registros no workshop. **Lembrem-se de que estamos falando da solução ou tecnologia que foi objeto da PoC realizada com a Siemens em 2025.**'},
+ {q:{id:'1.1',t:'A ideia técnica central da solução já foi testada em experimento controlado, com resultados registrados?',p:[r('','',YN),...dl('Onde foi feito (laboratório ou instituição, e cidade)')],n:['Evidência, se esta for a pergunta mais avançada: relatório ou planilha com os resultados do experimento, indicando data, método e principais medições.']}},
+ {q:{id:'1.2',t:'As partes da solução já funcionaram juntas, de forma integrada, em laboratório ou bancada?',p:[r('','',YN),...dl('Onde foi feito (laboratório ou bancada, instituição e cidade)')],n:['Evidência, se esta for a pergunta mais avançada: relatório de teste integrado com as métricas de desempenho definidas antes do teste e os resultados obtidos.']}},
+ {q:{id:'1.3',t:'A solução integrada já foi testada em condições que reproduzem o uso real (por exemplo: calor, umidade, chuva, água com sedimentos, energia instável, internet limitada)?',p:[r('','','Sim, em condições simuladas (câmara, tanque, bancada de estresse)|Sim, em local de teste controlado pela equipe|Não'),...dl('Onde foi testado (câmara, tanque ou local de teste; instituição e cidade)')],n:['Evidência, se esta for a pergunta mais avançada: descrição das condições de teste, principais medições e falhas encontradas.']}},
+ {q:{id:'1.4',t:'Os resultados do teste da pergunta 1.3 se repetiram em mais de uma rodada de testes?',p:[r('','','Sim|Não|Só houve uma rodada'),t('rod','Se sim, informem o número de rodadas','','s')]}},
  {q:{id:'1.5',t:'Existe um protótipo com forma, tamanho e funções próximos da versão final?',p:[r('','','Sim|Não, o protótipo ainda é bem diferente da versão final|'+NA),t('data','Se sim, data da versão atual','mm/aaaa','s')],n:['Evidência, se esta for a pergunta mais avançada: fotos ou vídeo do protótipo e lista das diferenças em relação à versão final prevista.']}},
  {q:{id:'1.6',t:'A solução já operou no local real onde será usada?',p:[r('','',YN),
   r('tempo','Se sim, por quanto tempo operou?','Menos de 1 mês|De 1 a 3 meses|Mais de 3 meses'),
-  t('unid','Quantas unidades ou instalações?','','s'),t('local','Local','','h'),t('periodo','Período','','h')],n:['Evidência, se esta for a pergunta mais avançada: relatório do piloto com local, período, dados de desempenho e problemas ocorridos.']}},
- {q:{id:'1.7',t:'Nessa operação, quem operava a solução no dia a dia?',p:[r('','','Os futuros usuários (cliente ou comunidade)|A equipe de desenvolvimento|Os dois|Não houve operação no local real'),t('org','Se foram os futuros usuários, indique o tipo de organização e a função')]}},
- {q:{id:'1.8',t:'A solução já foi demonstrada a pessoas de fora da equipe (clientes, parceiros, avaliadores)?',p:[r('','','Sim, em demonstração|Sim, em uso real (já respondido em 1.6)|Não'),t('data','Se sim, data','mm/aaaa','h'),t('local','Local','','h'),t('pub','Tipo de público')]}},
- {q:{id:'1.9',t:'A versão final da solução já passou pelos testes de qualificação necessários para ser vendida (durabilidade, segurança, desempenho)?',p:[r('','','Sim|Em andamento|Não|'+NA),t('conc','Se sim ou em andamento, informe os testes já concluídos')],n:['Evidência, se esta for a pergunta mais avançada: plano de testes e resultados disponíveis.']}},
- {q:{id:'1.10',t:'Na visão da equipe, em que ponto a tecnologia está hoje? Marque a opção mais alta para a qual vocês têm evidência.',p:[r('','','A ideia central foi comprovada em experimento|As partes funcionam juntas em laboratório|Funciona em condições que simulam o uso real (câmara, tanque, bancada de estresse ou local de teste da equipe)|Um protótipo próximo da versão final foi demonstrado em condições realistas|Funcionou no local real, operada pela nossa equipe|Funcionou no local real, operada pelo cliente ou usuário, sem a presença da equipe no dia a dia|A versão final está qualificada e pronta para produção|Já está em operação comercial com clientes pagantes')],n:['A resposta será comparada com a evidência anexada em 1.12 e com a avaliação do especialista em tecnologia indicado pela Siemens. Diferenças de avaliação serão discutidas no workshop.']}},
+  t('unid','Quantas unidades ou instalações?','','s'),t('local','Onde operou (município e nome do local ou da comunidade)','','h'),t('periodo','Período','','h')],n:['Evidência, se esta for a pergunta mais avançada: relatório do piloto com local, período, dados de desempenho e problemas ocorridos.']}},
+ {q:{id:'1.7',t:'Nessa operação, quem operava a solução no dia a dia?',p:[r('','','Os futuros usuários (cliente ou comunidade)|A equipe de desenvolvimento|Os dois|Não houve operação no local real'),t('org','Se foram os futuros usuários, indiquem o tipo de organização e a função')]}},
+ {q:{id:'1.8',t:'A solução já foi demonstrada a pessoas de fora da equipe (clientes, parceiros, avaliadores)?',p:[r('','','Sim, em demonstração|Sim, em uso real (já respondido em 1.6)|Não'),t('data','Se sim: data (mês e ano)','mm/aaaa','h'),t('local','Onde foi feita a demonstração (evento, organização ou município)','','h'),t('pub','Tipo de público')]}},
+ {q:{id:'1.9',t:'A versão final da solução já passou pelos testes de qualificação necessários para ser vendida (durabilidade, segurança, desempenho)?',p:[r('','','Sim|Em andamento|Não|'+NA),t('conc','Se sim ou em andamento, informem os testes já concluídos')],n:['Evidência, se esta for a pergunta mais avançada: plano de testes e resultados disponíveis.']}},
+ {q:{id:'1.10',t:'Na visão da equipe, em que ponto a tecnologia está hoje? Marquem a opção mais alta para a qual vocês têm evidência.',p:[r('','','A ideia central foi comprovada em experimento|As partes funcionam juntas em laboratório|Funciona em condições que simulam o uso real (câmara, tanque, bancada de estresse ou local de teste da equipe)|Um protótipo próximo da versão final foi demonstrado em condições realistas|Funcionou no local real, operada pela nossa equipe|Funcionou no local real, operada pelo cliente ou usuário, sem a presença da equipe no dia a dia|A versão final está qualificada e pronta para produção|Já está em operação comercial com clientes pagantes')],n:['A resposta será comparada com a evidência anexada em 1.12 e com a avaliação do especialista em tecnologia indicado pela Siemens. Diferenças de avaliação serão discutidas no workshop.']}},
  {q:{id:'1.11',t:'Qual parte da solução está menos desenvolvida hoje e como isso afeta a entrada no mercado em escala? O que falta para a tecnologia avançar ao próximo ponto da escala acima, quanto custa e em quanto tempo?',p:[
   a('parte','Parte menos desenvolvida e efeito na entrada no mercado'),a('falta','O que falta'),t('custo','Custo estimado (R$)','','h'),t('prazo','Prazo estimado (meses)','','h')]}},
  {q:{id:'1.12',t:'Anexo obrigatório: evidência técnica. A que pergunta corresponde o documento anexado?',p:[r('','','1.1|1.2|1.3|1.5|1.6|1.9|Nenhuma: não marcamos “sim” em nenhuma delas')]}}
@@ -334,13 +339,13 @@ const SECTIONS=[
  {q:{id:'2.1',t:'A tecnologia tem alguma forma de proteção de propriedade intelectual?',p:[r('','','Patente concedida|Pedido de patente depositado|Registro de software|Segredo industrial com política documentada|Nenhuma|Em avaliação'),t('num','Se houver, número do pedido ou registro','','h'),t('tit','Titular (quem é o dono)','','h')]}},
  {q:{id:'2.2',t:'O que foi desenvolvido na PoC realizada com a Siemens em 2025 tem titularidade definida por contrato?',p:[r('','','Sim, é só nossa|Sim, é compartilhada com a Siemens|Sim, é da Siemens|Sim, é compartilhada com outra instituição|Não está definida|Não sabemos')]}},
  {q:{id:'2.3',t:'A solução usa software, hardware ou dados da Siemens que exigiriam licença para ser vendida a outros clientes?',p:[r('','','Sim, e a licença está resolvida|Sim, e a licença não está resolvida|Não|Não sabemos')]}},
- {q:{id:'2.4',t:'Existem certificações, homologações ou normas técnicas obrigatórias para vender a solução?',p:[r('','','Sim, e já foram obtidas|Sim, em andamento|Sim, ainda não iniciadas|Não sabemos|'+NA),a('lista','Se sim, liste as exigências e o status de cada uma')]}},
+ {q:{id:'2.4',t:'Existem certificações, homologações ou normas técnicas obrigatórias para vender a solução?',p:[r('','','Sim, e já foram obtidas|Sim, em andamento|Sim, ainda não iniciadas|Não sabemos|'+NA),a('lista','Se sim, listem as exigências e o status de cada uma')]}},
  {q:{id:'2.5',t:'Para soluções com hardware: existe uma lista de componentes com custo estimado (Bill of materials)?',p:[r('','','Sim|Não|'+NA)],n:['Sugerimos levar no workshop: a lista de componentes com quantidades, custos e fornecedores.']}},
  {q:{id:'2.6',t:'Para soluções com hardware: já foram identificados fornecedores ou parceiros para produzir mais unidades?',p:[r('','','Sim, com orçamento|Sim, sem orçamento|Não|'+NA),t('qtd','Se sim, quantos fornecedores foram identificados? (não é preciso dar os nomes)','','s')]}},
  {q:{id:'2.7',t:'Para soluções com hardware/maquinário: hoje, quantas unidades a equipe consegue produzir por ano?',p:[
   r('','','Menos de 1 (produção artesanal ou sob encomenda)|1 a 5|6 a 20|21 a 100|Mais de 100|'+NA),
   r('quem','Quem produz hoje?','A própria equipe|Laboratório ou universidade|Fornecedor terceirizado|Combinação'),
-  c('lim','O que mais limita a produção? (marque até 2)','Componentes importados ou com prazo longo|Mão de obra|Equipamentos|Espaço|Capital de giro|'+OUT,2)]}},
+  c('lim','O que mais limita a produção? (marquem até 2)','Componentes importados ou com prazo longo|Mão de obra|Equipamentos|Espaço|Capital de giro|'+OUT,2)]}},
  {q:{id:'2.8',t:'Quanto custa hoje produzir uma unidade (materiais, montagem, mão de obra e testes, sem logística e instalação)?',p:[t('v','R$ por unidade','','s'),r('st','','Ainda não calculado|Prefiro informar no workshop|'+NA)],n:['Sugerimos levar no workshop: a planilha de custo por unidade com as premissas.']}},
  {q:{id:'2.9',t:'Quanto a equipe estima que custaria produzir uma unidade em lote maior (mais escala)?',p:[t('v','R$ por unidade','','s'),t('lote','Em um lote de (unidades)','','s'),r('st','','Ainda não estimado|Prefiro informar no workshop|'+NA)],n:['Sugerimos levar no workshop: os orçamentos ou o cálculo com as premissas.']}}
 ]},
@@ -348,24 +353,24 @@ const SECTIONS=[
 {k:'3',title:'Compradores e como a solução resolve as suas dores',items:[
  {i:'Nesta seção, entendemos que **decisor** é a pessoa do cliente que controla o orçamento e aprova a compra. **Usuário** é quem vai operar a solução. Muitas vezes são pessoas diferentes.'},
  {i:'Nesta seção, basta um anexo, e só se houver declaração por escrito em 3.4 ou documento em 3.6: o registro do compromisso mais forte com um cliente (dados de clientes podem ser anonimizados). Nas demais perguntas, as respostas valem como declaração da equipe.'},
- {q:{id:'3.1',t:'Com quantas pessoas de organizações potencialmente clientes a equipe conversou sobre o problema que a solução resolve? Conte pessoas diferentes, não reuniões.',p:[
+ {q:{id:'3.1',t:'Com quantas pessoas de organizações potencialmente clientes a equipe conversou sobre o problema que a solução resolve? Contem pessoas diferentes, não reuniões.',p:[
   r('usu','Usuários (vão operar a solução)','0|1 a 4|5 a 9|10 ou mais'),
   r('inf','Influenciadores (gostam da solução e podem recomendar, mas não aprovam orçamento)','0|1 a 4|5 a 9|10 ou mais'),
   r('dec','Decisores (aprovam o orçamento ou assinam a compra)','0|1 a 4|5 a 9|10 ou mais')],
-  n:['Preencha a Tabela A (no fim do formulário) com essas conversas. O número de decisores deve ser igual ao número de linhas da Tabela A em que “Controla orçamento?” é “Sim”. Na dúvida sobre se a pessoa aprova orçamento, conte como influenciador. Podem usar códigos no lugar dos nomes dos clientes.']}},
+  n:['Preencham a Tabela A (no fim do formulário) com essas conversas. O número de decisores deve ser igual ao número de linhas da Tabela A em que “Controla orçamento?” é “Sim”. Na dúvida sobre se a pessoa aprova orçamento, contem como influenciador. Podem usar códigos no lugar dos nomes dos clientes.']}},
  {q:{id:'3.2',t:'Em quantas organizações diferentes o problema foi descrito pelo próprio cliente como prioritário?',p:[r('','','Nenhuma|1|2|3 ou mais')]}},
  {q:{id:'3.3',t:'Algum potencial cliente informou quanto o problema custa hoje para ele (em dinheiro, tempo ou risco)?',p:[r('','',YN),t('ordem','Se sim, qual a ordem de grandeza informada?')]}},
- {q:{id:'3.4',t:'Algum decisor declarou, de forma explícita, que pagaria pela solução? Marque a forma mais forte que vocês têm.',p:[r('','','Sim, por escrito (e-mail, mensagem ou ata), com valor ou faixa de valor|Sim, por escrito, sem valor|Sim, apenas verbalmente|Não'),t('cargo','Se sim, cargo de quem declarou','','h'),r('valor','O valor foi:','proposto pela equipe e aceito pelo cliente|sugerido pelo próprio cliente|não houve valor')]}},
- {q:{id:'3.5',t:'A equipe sabe o que os potenciais clientes usam hoje no lugar da solução (outro produto, trabalho manual, nada)?',p:[r('','','Sim, para todos os clientes consultados|Sim, para parte deles|Não'),t('alt','Se sim, liste as principais alternativas')]}},
- {q:{id:'3.6',t:'Existe algum documento de compromisso com potencial cliente? Marque o mais forte.',p:[r('','','Contrato assinado|Piloto pago, com contrato ou pedido de compra|Carta de intenção de compra assinada pelo cliente|Memorando de entendimento assinado pelas duas partes|Proposta comercial formal (com escopo, preço e prazo) enviada e em negociação|Preço indicativo enviado por e-mail ou mensagem, sem proposta formal|Nenhum')]}},
- {q:{id:'3.7',t:'Quantos potenciais clientes estão hoje em negociação ou em conversa ativa?',p:[r('','','0|1|2|3 ou mais')],n:['Se 1 ou mais, preencha a Tabela B (no fim do formulário) para até 3 clientes mais avançados.']}},
+ {q:{id:'3.4',t:'Algum decisor declarou, de forma explícita, que pagaria pela solução? Marquem a forma mais forte que vocês têm.',p:[r('','','Sim, por escrito (e-mail, mensagem ou ata), com valor ou faixa de valor|Sim, por escrito, sem valor|Sim, apenas verbalmente|Não'),t('cargo','Se sim, cargo de quem declarou','','h'),r('valor','O valor foi:','proposto pela equipe e aceito pelo cliente|sugerido pelo próprio cliente|não houve valor')]}},
+ {q:{id:'3.5',t:'A equipe sabe o que os potenciais clientes usam hoje no lugar da solução (outro produto, trabalho manual, nada)?',p:[r('','','Sim, para todos os clientes consultados|Sim, para parte deles|Não'),t('alt','Se sim, listem as principais alternativas')]}},
+ {q:{id:'3.6',t:'Existe algum documento de compromisso com potencial cliente? Marquem o mais forte.',p:[r('','','Contrato assinado|Piloto pago, com contrato ou pedido de compra|Carta de intenção de compra assinada pelo cliente|Memorando de entendimento assinado pelas duas partes|Proposta comercial formal (com escopo, preço e prazo) enviada e em negociação|Preço indicativo enviado por e-mail ou mensagem, sem proposta formal|Nenhum')]}},
+ {q:{id:'3.7',t:'Quantos potenciais clientes estão hoje em negociação ou em conversa ativa?',p:[r('','','0|1|2|3 ou mais')],n:['Se 1 ou mais, preencham a Tabela B (no fim do formulário) para até 3 clientes mais avançados.']}},
  {q:{id:'3.8',t:'Dos potenciais clientes com quem conversaram, quantos disseram que a solução resolve um problema importante para eles e que considerariam comprá-la?',p:[r('','','Nenhum|1|2|3 ou mais')]}},
- {q:{id:'3.9',t:'Existe um caminho conhecido e repetível para chegar aos decisores (quem apresenta, por qual canal)?',p:[r('','','Sim, já usado mais de uma vez|Sim, usado uma vez|Não'),t('desc','Se sim, descreva brevemente')]}},
+ {q:{id:'3.9',t:'Existe um caminho conhecido e repetível para chegar aos decisores (quem apresenta, por qual canal)?',p:[r('','','Sim, já usado mais de uma vez|Sim, usado uma vez|Não'),t('desc','Se sim, descrevam brevemente')]}},
  {q:{id:'3.10',t:'Anexo obrigatório, se houver declaração por escrito em 3.4 ou documento em 3.6: evidência comercial. Anexem um único documento: o de 3.6, se houver, ou o registro escrito da declaração de 3.4 (e-mail, mensagem ou ata). Podem ocultar valores e o nome do cliente. A que pergunta corresponde o documento anexado?',p:[r('','','3.6|3.4|Nenhuma: não temos declaração por escrito em 3.4 nem documento em 3.6')]}}
 ]},
 
 {k:'4',title:'Modelo comercial e custos',items:[
- {q:{id:'4.1',t:'Como a solução vai gerar receita? (marque o principal)',p:[r('','','Venda de equipamento|Equipamento com contrato de manutenção|Assinatura ou serviço recorrente|Venda de dados ou relatórios|Licença da tecnologia|Serviço por projeto|Ainda não definido|'+OUT)]}},
+ {q:{id:'4.1',t:'Como a solução vai gerar receita? (marquem o principal)',p:[r('','','Venda de equipamento|Equipamento com contrato de manutenção|Assinatura ou serviço recorrente|Venda de dados ou relatórios|Licença da tecnologia|Serviço por projeto|Ainda não definido|'+OUT)]}},
  {q:{id:'4.2',t:'Como os potenciais clientes reagiram ao modelo de receita?',p:[r('','','2 ou mais aceitaram|1 aceitou|Houve objeções|Ainda não apresentamos')]}},
  {q:{id:'4.3',t:'Existe um preço ou faixa de preço definida?',p:[r('','',YN),t('preco','Se sim: preço ou faixa (R$)','','h'),t('por','Por (unidade, mês, projeto)','','h')]}},
  {q:{id:'4.4',t:'Esse preço já foi apresentado a potenciais clientes?',p:[r('','','Sim, e 2 ou mais aceitaram ou confirmaram|Sim, e 1 aceitou ou confirmou|Sim, mas foi recusado ou questionado|Não foi apresentado')]}},
@@ -376,59 +381,60 @@ const SECTIONS=[
 ]},
 
 {k:'5',title:'Mercado, parceiros e canal',items:[
- {q:{id:'5.1',t:'A equipe mapeou os concorrentes e definiu em que a solução é melhor do que eles?',p:[r('','','Sim, com comparação documentada|Sim, de forma informal|Não'),t('conc','Se sim, principais concorrentes ou alternativas','','h'),t('dif','Principais diferenciais','','h')]}},
- {q:{id:'5.2',t:'O que dificulta que um concorrente copie a solução? (marque todas que se aplicam)',p:[c('','','Patente ou segredo industrial|Dados acumulados|Custo menor|Relação estabelecida com clientes|Conhecimento técnico difícil de reproduzir|Nada específico por enquanto')]}},
- {q:{id:'5.3',t:'A equipe tem parceiros formalizados (tecnologia, produção, integração, distribuição)?',p:[r('','','Sim, 2 ou mais|Sim, 1|Em negociação|Não'),a('lista','Se sim, liste o tipo de cada parceiro e a forma do acordo (contrato, memorando, carta). Podem usar códigos no lugar dos nomes.')]}},
+ {q:{id:'5.1',t:'A equipe mapeou os concorrentes e as alternativas que o cliente tem hoje, e definiu em que a solução é melhor do que eles?',n:['Se não houver concorrente direto, considerem as alternativas: outro produto, trabalho manual, solução importada ou o cliente não fazer nada.'],p:[r('','','Sim, com comparação documentada|Sim, de forma informal|Não'),t('conc','Se sim, principais concorrentes ou alternativas','','h'),t('dif','Principais diferenciais','','h')]}},
+ {q:{id:'5.2',t:'O que dificulta que um concorrente copie a solução? (marquem todas que se aplicam)',p:[c('','','Patente ou segredo industrial|Dados acumulados|Custo menor|Relação estabelecida com clientes|Conhecimento técnico difícil de reproduzir|Nada específico por enquanto')]}},
+ {q:{id:'5.3',t:'A equipe tem parceiros formalizados (tecnologia, produção, integração, distribuição)?',p:[r('','','Sim, 2 ou mais|Sim, 1|Em negociação|Não'),a('lista','Se sim, listem o tipo de cada parceiro e a forma do acordo (contrato, memorando, carta). Podem usar códigos no lugar dos nomes.')]}},
  {q:{id:'5.4',t:'Quais serão os principais caminhos para chegar aos clientes? (marquem até 3)',p:[c('','','Venda direta|Integrador ou revendedor|Parceiro tecnológico|Siemens|Licitação ou compra pública|Ainda não definido',3)]}},
  {q:{id:'5.5',t:'Esses caminhos já foram testados e geraram pelo menos um contato qualificado com decisor?',p:[r('','','Sim, mais de uma oportunidade|Sim, uma oportunidade|Não')]}},
- {q:{id:'5.6',t:'Qual o papel que a equipe imagina para a Siemens? Marque todas que se aplicam e indique qual é o principal.',p:[c('','','Canal de vendas ou acesso a clientes da Siemens|Parceira tecnológica (integração com produtos Siemens)|Apoio técnico ou de engenharia|Cliente|Investidora|Visibilidade e reputação|Ainda não avaliamos|'+OUT),t('princ','Papel principal (escreva qual das opções acima)')]}},
- {q:{id:'5.7',t:'Esse papel já foi discutido com alguma área da Siemens? Marque a situação mais avançada.',p:[r('','','Sim, com área de negócio, e há um próximo passo concreto com data marcada (reunião com cliente, proposta, teste de integração)|Sim, com área de negócio, sem próximo passo definido|Sim, apenas com a equipe do programa Tech4Amazonia|Não'),
+ {q:{id:'5.6',t:'Qual o papel que a equipe imagina para a Siemens? Marquem todas que se aplicam e indiquem qual é o principal.',p:[c('','','Canal de vendas ou acesso a clientes da Siemens|Parceira tecnológica (integração com produtos Siemens)|Apoio técnico ou de engenharia|Cliente|Investidora|Visibilidade e reputação|Ainda não avaliamos|'+OUT),t('princ','Papel principal (escrevam qual das opções acima)')]}},
+ {q:{id:'5.7',t:'Esse papel já foi discutido com alguma área da Siemens? Marquem a situação mais avançada.',p:[r('','','Sim, com área de negócio, e há um próximo passo concreto com data marcada (reunião com cliente, proposta, teste de integração)|Sim, com área de negócio, sem próximo passo definido|Sim, apenas com a equipe do programa Tech4Amazonia|Não'),
   t('area','Se sim, área','','h'),t('cargo','Cargo da pessoa','','h'),t('data','Data da conversa','dd/mm/aaaa','h'),t('prox','Próximo passo e data','','h')],n:['Esta resposta será confirmada com o responsável Siemens da PoC.']}},
- {q:{id:'5.8',t:'Se a Siemens não participasse, a solução teria outro caminho viável até o mercado?',p:[r('','','Sim, identificado|Talvez|Não'),t('desc','Se sim, descreva brevemente')]}}
+ {q:{id:'5.8',t:'Se a Siemens não participasse, a solução teria outro caminho viável até o mercado?',p:[r('','','Sim, identificado|Talvez|Não'),t('desc','Se sim, descrevam brevemente')]}}
 ]},
 
 {k:'6',title:'Recursos e financiamento',items:[
  {q:{id:'6.1',t:'Com os recursos disponíveis hoje, por quantos meses a equipe consegue manter o desenvolvimento da solução?',p:[r('','','Menos de 6|De 6 a 12|De 12 a 18|Mais de 18')],n:['As fontes desses recursos aparecem na tabela 6.3.']}},
  {q:{id:'6.2',t:'Editais e programas de fomento: quantos a equipe já identificou como adequados à solução, e qual a situação da candidatura mais avançada?',p:[
-  r('id','Identificados','0|1|2 ou mais'),t('nomes','Se 1 ou mais, liste os nomes'),
+  r('id','Identificados','0|1|2 ou mais'),t('nomes','Se 1 ou mais, listem os nomes'),
   r('cand','Candidatura mais avançada','Aprovada, com recursos ainda a receber|Submetida, em avaliação|Em preparação|Nenhuma')]}},
- {q:{id:'6.3',t:'Que recursos a solução já recebeu? Use uma linha por tipo. Se houve mais de um recurso do mesmo tipo, indique o principal e anote os demais na coluna “Fonte”. A fonte pode ser informada pelo nome ou só pela categoria (por exemplo: “fundação estadual de amparo à pesquisa”, “investidor-anjo”).',
+ {q:{id:'6.3',t:'Que recursos a solução já recebeu? Para cada tipo, informem a fonte e o ano de recebimento e marquem o valor total recebido.',
+  n:['Se houve mais de uma fonte do mesmo tipo, listem todas, cada uma com o seu ano, e marquem a faixa que corresponde à soma dos valores. A fonte pode ser o nome ou só a categoria. Exemplo: “fundação estadual de amparo à pesquisa, 2023; FINEP, 2025”.'],
   rw:[['a','Fomento ou subvenção (FINEP, fundações de amparo à pesquisa, EMBRAPII, BNDES, editais)'],['b','Investimento em participação (investidor-anjo, fundo, aceleradora, empresa)'],['c','Empréstimo ou financiamento reembolsável'],['d','Prêmios e programas de aceleração com recursos'],['e','Recursos próprios dos sócios ou da instituição de origem']].map(([id,l])=>({id,l:id+') '+l,f:[
-    r('rec','Recebeu?',YN),t('fonte','Fonte','','h'),t('ano','Ano','','s'),
-    r('valor','Valor','Até R$ 100 mil|R$ 100 a 500 mil|R$ 500 mil a 2 milhões|Mais de R$ 2 milhões'),r('exec','Ainda em execução?',YN)]}))}},
- {q:{id:'6.4',t:'Algum desses recursos traz condições que afetam novas parcerias ou o uso da tecnologia? (marque todas que se aplicam)',p:[c('','','Exclusividade com algum parceiro ou cliente|Direitos de terceiros sobre a propriedade intelectual|Direito de preferência ou de veto em novas parcerias ou investimentos|Contrapartida financeira ou de entregas|Restrição a financiar a mesma atividade com outros recursos|Nenhuma|Não sabemos'),a('desc','Se marcou alguma condição, descreva brevemente')]}},
+    r('rec','Recebeu?',YN),t('fonte','Fonte e ano de recebimento','Ex.: fundação estadual, 2023; FINEP, 2025','h'),
+    r('valor','Valor total (soma de todas as fontes deste tipo)','Até R$ 100 mil|R$ 100 a 500 mil|R$ 500 mil a 2 milhões|Mais de R$ 2 milhões'),r('exec','Ainda em execução?',YN)]}))}},
+ {q:{id:'6.4',t:'Algum desses recursos traz condições que afetam novas parcerias ou o uso da tecnologia? (marquem todas que se aplicam)',p:[c('','','Exclusividade com algum parceiro ou cliente|Direitos de terceiros sobre a propriedade intelectual|Direito de preferência ou de veto em novas parcerias ou investimentos|Contrapartida financeira ou de entregas|Restrição a financiar a mesma atividade com outros recursos|Nenhuma|Não sabemos'),a('desc','Se marcaram alguma condição, descrevam brevemente')]}},
  {q:{id:'6.5',t:'Existe processo de captação de investimento em andamento (investidor privado, fundo, aceleradora)?',p:[r('','','Em negociação|Em preparação|Nenhum')],n:['Captações já concluídas entram na tabela 6.3.']}},
  {q:{id:'6.6',t:'Existe uma projeção de quando virá a primeira receita comercial?',p:[r('','','Já temos receita|Sim, em até 12 meses|Sim, entre 12 e 24 meses|Sim, em mais de 24 meses|Não')],n:['A projeção entra na planilha financeira (6.9), se existir.']}},
- {q:{id:'6.7',t:'Quais destes materiais a equipe tem para apresentar a investidores ou financiadores? Marque uma opção por linha.',
+ {q:{id:'6.7',t:'Quais destes materiais a equipe possui para apresentar a investidores ou financiadores? Marquem uma opção por linha.',
   g:{cols:['Sim','Em preparação','Não','Não se aplica'],rows:[['a','a) Apresentação para investidores (deck de captação)'],['b','b) Resumo executivo (uma ou duas páginas)'],['c','c) Plano de negócios'],['d','d) Projeções financeiras de 3 a 5 anos, com premissas'],['e','e) Proposta de captação: quanto precisam e como vão usar os recursos'],['f','f) Tabela de participação societária (quem é sócio e com quanto)'],['g','g) Pasta organizada com documentos societários, contratos e propriedade intelectual'],['h','h) Proposta técnica já usada em edital de fomento'],['i','i) Outro:~']]},
   n:['A anexação desses materiais é opcional, exceto o que for pedido na 6.9. No entanto, os especialistas podem pedir para ver ou discutir algum deles no workshop. “Não se aplica” vale, por exemplo, para equipes dentro de universidades que ainda não têm empresa constituída.']}},
- {q:{id:'6.8',t:'O impacto positivo da solução abre acesso a alguma destas fontes de financiamento ou mercados? Marque uma opção por linha.',
+ {q:{id:'6.8',t:'O impacto positivo da solução abre acesso a alguma destas fontes de financiamento ou mercados? Marquem uma opção por linha.',
   g:{cols:['Já acessamos','Pretendemos em 12 meses','Não'],rows:[['a','a) Edital ou fundo voltado à Amazônia, ao clima ou à bioeconomia'],['b','b) Investidor de impacto'],['c','c) Cliente que exige critérios ambientais ou sociais dos fornecedores'],['d','d) Créditos de carbono ou de biodiversidade']]},
-  n:['Liste os editais e fundos identificados também na pergunta 6.2.']}},
- {q:{id:'6.9',t:'Anexo obrigatório, se existir: planilha financeira. Anexem uma planilha com: (1) Histórico: receitas, custos, recursos recebidos e caixa de 2024, 2025 e 2026 (realizado até agora mais a estimativa até dezembro). (2) Projeção: receitas, custos, resultado e caixa dos próximos 3 anos, alinhados ao modelo de negócio do deck (pergunta 0.2), com as premissas (unidades, contratos recorrentes, preços, custos, investimentos e prazo de recebimento). Vocês podem usar o modelo de planilha entregue no kickoff ou enviar uma planilha própria com essas informações.',
+  n:['Incluam na lista da pergunta 6.2 os editais e fundos que marcaram na linha (a) como “Já acessamos” ou “Pretendemos em 12 meses”.']}},
+ {q:{id:'6.9',t:'Anexo obrigatório, se existir: planilha financeira. Anexem uma planilha com: (1) Histórico: receitas, custos, recursos recebidos e caixa de 2024, 2025 e 2026 (realizado até agora mais a estimativa até dezembro). (2) Projeção: receitas, custos, resultado e caixa dos próximos 3 anos, alinhados ao modelo de negócio do deck (pergunta 0.2), com as premissas (unidades, contratos recorrentes, preços, custos, investimentos e prazo de recebimento).',
   p:[r('','','Anexada, com histórico e projeção|Anexada, com projeção e histórico só de custos (ainda não há faturamento)|Não temos planilha financeira')],
   n:['Se não tiverem planilha, isso não reduz a avaliação, mas aparece no diagnóstico como ponto a desenvolver. A planilha fica numa subpasta visível só para os especialistas e para a facilitação do programa.']}}
 ]},
 
 {k:'7',title:'Equipe',items:[
- {q:{id:'7.1',t:'Preencha a composição atual da equipe.',tb:{cols:['Nome','Função na solução','Dedicação (horas por semana)','Vínculo (sócio, contratado, bolsista, pesquisador)','Participou da PoC com a Siemens em 2025? (Sim/Não)'],n:3,add:1}}},
- {q:{id:'7.2',t:'Alguma pessoa que teve papel central na PoC realizada com a Siemens em 2025 deixou a equipe? (marque a opção mais próxima)',p:[r('','','Não, a equipe principal da PoC continua|Sim, mas o conhecimento foi transferido ou documentado|Sim, mas a pessoa continua colaborando (consultoria, parceria ou bolsa)|Sim, e o conhecimento não foi totalmente transferido'),t('papel','Se sim, indiquem brevemente o papel de quem saiu, sem nomes')]}},
+ {q:{id:'7.1',t:'Preencham a composição atual da equipe.',tb:{cols:['Nome','Função na solução','Dedicação (horas por semana)','Vínculo (sócio, contratado, bolsista, pesquisador)','Participou da PoC com a Siemens em 2025? (Sim/Não)'],n:3,add:1}}},
+ {q:{id:'7.2',t:'Alguma pessoa que teve papel central na PoC realizada com a Siemens em 2025 deixou a equipe? (marquem a opção mais próxima)',p:[r('','','Não, a equipe principal da PoC continua|Sim, mas o conhecimento foi transferido ou documentado|Sim, mas a pessoa continua colaborando (consultoria, parceria ou bolsa)|Sim, e o conhecimento não foi totalmente transferido'),t('papel','Se sim, indiquem brevemente o papel de quem saiu, sem nomes')]}},
  {q:{id:'7.3',t:'Há na equipe alguém responsável pela área comercial, com dedicação definida?',p:[r('','','Sim, com dedicação integral|Sim, com dedicação parcial|Não')]}},
- {q:{id:'7.4',t:'Para chegar ao mercado ou escalar, a solução pode precisar de desenvolvimento técnico, piloto com cliente, vendas e captação de recursos. Para cada competência abaixo, indique como a equipe está hoje. Marque uma opção por linha.',
+ {q:{id:'7.4',t:'Para chegar ao mercado ou escalar, a solução pode precisar de desenvolvimento técnico, piloto com cliente, vendas e captação de recursos. Para cada competência abaixo, indiquem como a equipe está hoje. Marquem uma opção por linha.',
   g:{cols:['Temos na equipe','Temos com parceiro ou terceiro','Falta','Não precisamos agora'],rows:[['a','a) Desenvolvimento técnico e engenharia do produto'],['b','b) Testes, qualificação e certificação'],['c','c) Produção e cadeia de fornecedores'],['d','d) Implantação e suporte ao cliente em campo'],['e','e) Vendas para empresas e negociação com grandes clientes'],['f','f) Vendas para governo e compras públicas'],['g','g) Marketing e comunicação'],['h','h) Gestão financeira e captação com investidores'],['i','i) Elaboração de projetos para editais de fomento'],['j','j) Jurídico e propriedade intelectual'],['k','k) Regulação e licenciamento ambiental'],['l','l) Relação com comunidades e gestão de impacto socioambiental'],['m','m) Gestão de projetos e operação'],['n','n) Outra:~']]},
-  n:['Para cada competência marcada como “Temos na equipe”, indique na tabela da pergunta 7.1 quem responde por ela.']}},
- {q:{id:'7.5',t:'O desenvolvimento da solução ou de mercado precisará também de recursos não financeiros. Indique a situação de cada um. Marque uma opção por linha.',
+  n:['Para cada competência marcada como “Temos na equipe”, indiquem na tabela da pergunta 7.1 quem responde por ela.']}},
+ {q:{id:'7.5',t:'O desenvolvimento da solução ou de mercado precisará também de recursos não financeiros. Indiquem a situação de cada um. Marquem uma opção por linha.',
   g:{cols:['Temos','Acesso por parceria','Falta','Não se aplica'],rows:[['a','a) Laboratório ou infraestrutura de testes'],['b','b) Local e cliente para o piloto'],['c','c) Equipamentos para produção'],['d','d) Espaço físico de trabalho'],['e','e) Ferramentas de software, dados e conectividade'],['f','f) Acesso ao território e às comunidades'],['g','g) Logística de transporte na região'],['h','h) Outro:~']]},
   n:['Os recursos financeiros estão na Seção 6.']}},
- {q:{id:'7.6',t:'Para as competências e os recursos marcados como “Falta” nas perguntas 7.4 e 7.5, existe plano de contratação ou de parcerias?',p:[r('','','Sim, com prazos|Sim, sem prazos|Não|NA. Nenhum item marcado como “Falta”'),t('lista','Se sim, liste brevemente funções ou parceiros e prazos')]}},
- {q:{id:'7.7',t:'Como está a governança da equipe? Marque uma opção por linha.',p:[t('na','Justificativa, se marcou NA')],
-  g:{cols:['Sim, por escrito','Sim, informalmente ou em negociação','Não','NA'],rows:[['a','a) Está definido quem decide o quê dentro da equipe'],['b','b) Existe acordo entre os sócios ou entre as instituições envolvidas (acordo de sócios, acordo de cooperação)']]}}}
+ {q:{id:'7.6',t:'Para as competências e os recursos marcados como “Falta” nas perguntas 7.4 e 7.5, existe plano de contratação ou de parcerias?',p:[r('','','Sim, com prazos|Sim, sem prazos|Não|Não se aplica. Nenhum item marcado como “Falta”'),t('lista','Se sim, listem brevemente funções ou parceiros e prazos')]}},
+ {q:{id:'7.7',t:'Como está a governança da equipe? Marquem uma opção por linha.',p:[t('na','Justificativa, se marcaram “Não se aplica”')],
+  g:{cols:['Sim, por escrito','Sim, informalmente ou em negociação','Não','Não se aplica'],rows:[['a','a) Está definido quem decide o quê dentro da equipe'],['b','b) Existe acordo entre os sócios ou entre as instituições envolvidas (acordo de sócios, acordo de cooperação)']]}}}
 ]},
 
 {k:'8',title:'Impacto positivo',items:[
- {i:'Esta seção trata dos benefícios que a solução gera ou pode gerar para a região. Os temas são os que editais, fundos e investidores de impacto costumam olhar: trabalho e renda na região, capacitação, benefícios para grupos da região, soluções baseadas na natureza e bioeconomia, descarbonização e outros benefícios ambientais. Para cada indicador, informe a situação de hoje (o que já foi medido no piloto) e a estimativa para os próximos 12 meses. Estimativas são bem-vindas, desde que venham com as premissas usadas.'},
- {q:{id:'8.1',t:'Que tipos de impacto positivo a solução gera ou pode gerar? (marque todos que se aplicam)',p:[c('','','Trabalho e renda na região (empregos, renda para produtores e fornecedores locais, etapas de maior valor feitas na região)|Capacitação de pessoas da região|Benefícios para grupos da região (mulheres, povos indígenas, quilombolas, ribeirinhos e outras comunidades tradicionais, agricultores familiares)|Soluções baseadas na natureza e bioeconomia (floresta conservada ou manejada, cadeias da sociobiodiversidade, biodiversidade)|Descarbonização (emissões de gases de efeito estufa evitadas)|Outros benefícios ambientais (água, resíduos, energia)|Nenhum|'+OUT)]}},
- {q:{id:'8.2',t:'Para cada tipo marcado em 8.1, indique a faixa de hoje e a faixa estimada para 12 meses. Deixe em branco as linhas que não se aplicam. Os indicadores sobre grupos da região beneficiados estão na pergunta 8.7.',
+ {i:'Esta seção trata dos benefícios que a solução gera ou pode gerar para a região. Os temas são os que editais, fundos e investidores de impacto costumam olhar: trabalho e renda na região, capacitação, benefícios para grupos da região, soluções baseadas na natureza e bioeconomia, descarbonização e outros benefícios ambientais. Para cada indicador, informem a situação de hoje (o que já foi medido no piloto) e a estimativa para os próximos 12 meses. Estimativas são bem-vindas, desde que venham com as premissas usadas.'},
+ {q:{id:'8.1',t:'Que tipos de impacto positivo a solução gera ou pode gerar? (marquem todos que se aplicam)',p:[c('','','Trabalho e renda na região (empregos, renda para produtores e fornecedores locais, etapas de maior valor feitas na região)|Capacitação de pessoas da região|Benefícios para grupos da região (mulheres, povos indígenas, quilombolas, ribeirinhos e outras comunidades tradicionais, agricultores familiares)|Soluções baseadas na natureza e bioeconomia (floresta conservada ou manejada, cadeias da sociobiodiversidade, biodiversidade)|Descarbonização (emissões de gases de efeito estufa evitadas)|Outros benefícios ambientais (água, resíduos, energia)|Nenhum|'+OUT)]}},
+ {q:{id:'8.2',t:'Para cada tipo marcado em 8.1, indiquem a faixa de hoje e a faixa estimada para 12 meses. Deixem em branco as linhas que não se aplicam. Os indicadores sobre grupos da região beneficiados estão na pergunta 8.7.',
   n:['Não é preciso anexar nada nesta pergunta: o texto em cada linha indica o que sugerimos levar ao workshop para mostrar os números de hoje. Sem essa comprovação, a avaliação de impacto fica limitada a uma nota intermediária.'],
   rw:(()=>{
    const row=(id,l,h,e,n,ln,le)=>({id,l,n:'Podem mostrar no workshop: '+n,f:[r('hoje','Hoje (medido no piloto)',h+'|'+(ln||'Não medido')),r('est','Em 12 meses (estimado)',e+'|'+(le||'Não estimado'))]});
@@ -450,17 +456,17 @@ const SECTIONS=[
     row('i','i) Resíduos evitados ou reaproveitados, por ano','0|Até 10 t|10 a 100 t|100 a 1.000 t|Mais de 1.000 t','0|Até 10 t|10 a 100 t|100 a 1.000 t|Mais de 1.000 t','registros de pesagem ou de destinação'),
     row('j','j) Energia economizada ou gerada de fonte renovável, por ano','0|Até 10 MWh|10 a 100 MWh|100 a 1.000 MWh|Mais de 1.000 MWh','0|Até 10 MWh|10 a 100 MWh|100 a 1.000 MWh|Mais de 1.000 MWh','medições de consumo antes e depois')];
   })()}},
- {q:{id:'8.3',t:'Como os números da tabela 8.2 foram obtidos? (marque a opção que vale para a maior parte deles)',p:[r('','','Medidos no piloto|Estimados com premissas documentadas|Estimados sem método definido|Não temos números')],n:['Sugerimos levar no workshop: a memória de cálculo com as premissas, inclusive das estimativas para 12 meses. Um parágrafo por indicador basta. Exemplo: “Cada unidade instalada emprega 5 pessoas da região. Com 20 unidades vendidas em 12 meses, são 100 empregos diretos.” Se houver análise de impacto social ou ambiental, também pode ser levada ou enviada.']}},
+ {q:{id:'8.3',t:'Como os números da tabela 8.2 foram obtidos? (marquem a opção que vale para a maior parte deles)',p:[r('','','Medidos no piloto|Estimados com premissas documentadas|Estimados sem método definido|Não temos números')],n:['Sugerimos levar no workshop: a memória de cálculo com as premissas, inclusive das estimativas para 12 meses. Um parágrafo por indicador basta. Exemplo: “Cada unidade instalada emprega 5 pessoas da região. Com 20 unidades vendidas em 12 meses, são 100 empregos diretos.” Se houver análise de impacto social ou ambiental, também pode ser levada ou enviada.']}},
  {sub:'Trabalho e renda na região'},
  {q:{id:'8.4',t:'Se a solução gera empregos, eles são formais?',p:[r('','','Sim, a maioria por CLT|Sim, a maioria MEI ou PJ|Parte deles com algum grau de formalização|Não|Não sabemos|'+NA)]}},
- {q:{id:'8.5',t:'Se a solução gera renda local, como essa renda chega aos beneficiários? (marque todas que se aplicam)',p:[c('','','Compra de matéria-prima local|Contratação de serviços locais|Preço justo ou prêmio pago ao produtor|Repartição de benefícios|Participação no negócio|Doação|'+OUT+'|NA (não se aplica)')]}},
+ {q:{id:'8.5',t:'Se a solução gera renda local, como essa renda chega aos beneficiários? (marquem todas que se aplicam)',p:[c('','','Compra de matéria-prima local|Contratação de serviços locais|Preço justo ou prêmio pago ao produtor|Repartição de benefícios|Participação no negócio|Doação|'+OUT+'|Não se aplica')]}},
  {q:{id:'8.6',t:'Onde acontecem as etapas que geram mais valor na solução (por exemplo: processamento, fabricação, manutenção, análise de dados)?',p:[r('','','Na região amazônica|Parte na região e parte fora|Fora da região')]}},
  {sub:'Benefícios para grupos da região'},
- {q:{id:'8.7',t:'Se a solução tiver sucesso de mercado, quais destes grupos da região serão beneficiados diretamente, como trabalhadores, fornecedores, usuários ou comunidades atendidas? Preencha só as linhas que se aplicam. Não perguntamos sobre a composição da equipe.',
+ {q:{id:'8.7',t:'Se a solução tiver sucesso de mercado, quais destes grupos da região serão beneficiados diretamente, como trabalhadores, fornecedores, usuários ou comunidades atendidas? Preencham só as linhas que se aplicam.',
   rw:(()=>{const B='Renda|Trabalho|Capacitação|Acesso a serviço (água, energia, dados)|Outro';
    const row=(id,l)=>({id,l,f:[r('hoje','Beneficia hoje?',YN),r('fut','Beneficiará em 12 meses?',YN),r('ben','Principal benefício',B)]});
    return [row('a','Mulheres'),row('b','Pessoas negras (pretas e pardas)'),row('c','Povos indígenas'),row('d','Comunidades quilombolas'),row('e','Ribeirinhos, extrativistas e outras comunidades tradicionais'),row('f','Agricultores familiares'),row('g','Outro grupo:~')];})()}},
- {q:{id:'8.8',t:'Como a solução garante que esses grupos se beneficiem de forma justa? (marque todas que se aplicam)',p:[c('','','Contratação local prioritária|Capacitação dirigida a esses grupos|Participação desses grupos nas decisões sobre a solução|Consulta prévia às comunidades|Nenhum mecanismo ainda|'+NA),a('desc','Se marcou algum mecanismo, descreva brevemente')]}},
+ {q:{id:'8.8',t:'Como a solução garante que esses grupos se beneficiem de forma justa? (marquem todas que se aplicam)',p:[c('','','Contratação local prioritária|Capacitação dirigida a esses grupos|Participação desses grupos nas decisões sobre a solução|Consulta prévia às comunidades|Nenhum mecanismo ainda|'+NA),a('desc','Se marcaram algum mecanismo, descrevam brevemente')]}},
  {sub:'Soluções baseadas na natureza e bioeconomia'},
  {q:{id:'8.9',t:'A solução fortalece alguma cadeia da bioeconomia ou da sociobiodiversidade (por exemplo: açaí, óleos vegetais, castanha, pescado manejado, extrativismo)?',p:[r('','','Sim, diretamente|Sim, indiretamente|Não|'+NA),t('cadeia','Se sim, qual cadeia?'),r('parc','Com quem é a parceria?','Cooperativa|Associação|Comunidade|Empresa|Nenhuma formal')]}},
  {sub:'Relação entre impacto e negócio'},
@@ -468,16 +474,16 @@ const SECTIONS=[
 ]},
 
 {k:'9',title:'Riscos',items:[
- {q:{id:'9.1',t:'A solução depende de um único fornecedor para algum componente ou serviço crítico?',p:[r('','','Sim|Não|Não sabemos'),t('qual','Se sim, indique qual e se há alternativa')]}},
- {q:{id:'9.2',t:'A solução pode substituir postos de trabalho na região?',p:[r('','','Sim|Não|Não sabemos'),r('alt','Se sim: existe alternativa prevista para essas pessoas (requalificação, novas funções)?',YN)]}},
+ {q:{id:'9.1',t:'A solução depende de um único fornecedor para algum componente ou serviço crítico?',p:[r('','','Sim|Não|Não sabemos'),t('qual','Se sim, indiquem qual e se há alternativa')]}},
+ {q:{id:'9.2',t:'A solução pode substituir postos de trabalho na região?',p:[r('','','Sim|Não|Não sabemos'),r('alt','Se sim: existe alternativa prevista para essas pessoas (requalificação, novas funções)?',YN),t('altdesc','Se sim, descrevam brevemente a alternativa')]}},
  {q:{id:'9.3',t:'O uso da solução exige competências digitais ou acesso à internet que o público-alvo pode não ter?',p:[r('','','Sim|Não|Não sabemos')]}},
  {q:{id:'9.4',t:'A solução coleta ou trata dados pessoais?',p:[r('','',YN),r('lgpd','Se sim: a adequação à LGPD está documentada?','Sim|Em andamento|Não')]}},
  {q:{id:'9.5',t:'A solução usa inteligência artificial para tomar ou recomendar decisões que afetam pessoas?',p:[r('','',YN),r('rev','Se sim: há revisão humana dessas decisões?',YN)]}},
  {q:{id:'9.6',t:'A produção, a operação ou o descarte da solução geram impacto ambiental negativo relevante (baterias, resíduos, químicos, consumo de energia)?',p:[r('','','Sim|Não|Não sabemos'),r('plano','Se sim: existe plano de fim de vida ou de recolhimento?',YN)]}},
- {q:{id:'9.7',t:'Há mudanças regulatórias previstas nos próximos 2 a 3 anos que possam afetar a solução?',p:[r('','','Sim|Não|Não sabemos'),t('desc','Se sim, descreva brevemente')]}},
- {q:{id:'9.8',t:'A solução usa algum destes itens? (marque todos que se aplicam)',p:[c('','','Patrimônio genético brasileiro (plantas, animais, fungos ou microrganismos nativos, ou extratos deles)|Conhecimento tradicional associado (saberes de povos indígenas ou comunidades tradicionais)|Nenhum|Não sabemos'),
-  r('sisgen','Se marcou algum item: o acesso está cadastrado no SisGen?','Sim|Em andamento|Não'),r('rep','A repartição de benefícios está definida?','Sim|Em negociação|Não')],
-  n:['Anexo, só se marcou algum item e o cadastro existe: comprovante com o número do cadastro no SisGen.','Sugerimos levar no workshop: o acordo de repartição de benefícios.']}}
+ {q:{id:'9.7',t:'Há mudanças regulatórias previstas nos próximos 2 a 3 anos que possam afetar a solução?',p:[r('','','Sim|Não|Não sabemos'),t('desc','Se sim, descrevam brevemente')]}},
+ {q:{id:'9.8',t:'A solução usa algum destes itens? (marquem todos que se aplicam)',p:[c('','','Patrimônio genético brasileiro (plantas, animais, fungos ou microrganismos nativos, ou extratos deles)|Conhecimento tradicional associado (saberes de povos indígenas ou comunidades tradicionais)|Nenhum|Não sabemos'),
+  r('sisgen','Se marcaram algum item: o acesso está cadastrado no SisGen?','Sim|Em andamento|Não'),r('rep','A repartição de benefícios está definida?','Sim|Em negociação|Não')],
+  n:['Anexo, só se marcaram algum item e o cadastro existe: comprovante com o número do cadastro no SisGen.','Sugerimos levar no workshop: o acordo de repartição de benefícios.']}}
 ]},
 
 {k:'10',title:'Operação na Amazônia',items:[
@@ -485,33 +491,33 @@ const SECTIONS=[
  {q:{id:'10.2',t:'O transporte e a manutenção da solução são viáveis nessas regiões?',p:[r('','','Sim, testado na prática|Sim, avaliado mas não testado|Há dificuldades conhecidas sem solução definida|Não avaliado')]}},
  {q:{id:'10.3',t:'O fornecimento de energia necessário à solução é viável nessas regiões?',p:[r('','','Sim, testado na prática|Sim, avaliado mas não testado|Há dificuldades conhecidas sem solução definida|Não avaliado|'+NA)]}},
  {q:{id:'10.4',t:'A conectividade necessária à solução é viável nessas regiões?',p:[r('','','Sim, testado na prática|Sim, avaliado mas não testado|Há dificuldades conhecidas sem solução definida|Não avaliado|'+NA)]}},
- {q:{id:'10.5',t:'A operação ocorre dentro ou perto de alguma destas áreas? (marque todas que se aplicam)',p:[c('','','Unidade de conservação|Terra indígena|Território quilombola|Outra área com restrição ambiental|Nenhuma|Não sabemos'),
-  r('aut','Se marcou alguma área: as autorizações necessárias estão mapeadas?','Sim|Em andamento|Não'),
-  r('fund','Se a operação usa terra própria ou de parceiro: a situação fundiária está regularizada?','Sim|Em andamento|Não|NA')]}},
- {q:{id:'10.6',t:'A solução precisa de licenças para operar no setor e na região (licenciamento ambiental, alvarás, licenças setoriais)?',p:[r('','','Sim, obtidas|Sim, em andamento|Sim, não iniciadas|Não|Não sabemos'),a('lista','Se sim, liste as principais licenças e o status de cada uma')],n:['Anexo, só se a licença ambiental foi obtida ou está em andamento: licença ou protocolo.']}},
- {q:{id:'10.7',t:'Comunidades locais, povos tradicionais ou outros grupos vulneráveis podem ser prejudicados ou afetados pela solução?',p:[r('','','Sim|Não|Não sabemos'),a('quais','Se sim, indique quais e como'),r('dialogo','Já houve diálogo ou consulta com essas comunidades ou grupos?','Sim, realizado|Planejado|Não'),a('reunioes','Se realizado, liste as reuniões (data e comunidade)')],n:['Sugerimos levar no workshop: os registros das reuniões.']}}
+ {q:{id:'10.5',t:'A operação ocorre dentro ou perto de alguma destas áreas? (marquem todas que se aplicam)',p:[c('','','Unidade de conservação|Terra indígena|Território quilombola|Outra área com restrição ambiental|Nenhuma|Não sabemos'),
+  r('aut','Se marcaram alguma área: as autorizações necessárias estão mapeadas?','Sim|Em andamento|Não'),
+  r('fund','Se a operação usa terra própria ou de parceiro: a situação fundiária está regularizada?','Sim|Em andamento|Não|Não se aplica')]}},
+ {q:{id:'10.6',t:'A solução precisa de licenças para operar no setor e na região (licenciamento ambiental, alvarás, licenças setoriais)?',p:[r('','','Sim, obtidas|Sim, em andamento|Sim, não iniciadas|Não|Não sabemos'),a('lista','Se sim, listem as principais licenças e o status de cada uma')],n:['Anexo, só se a licença ambiental foi obtida ou está em andamento: licença ou protocolo.']}},
+ {q:{id:'10.7',t:'Comunidades locais, povos tradicionais ou outros grupos vulneráveis podem ser prejudicados ou afetados pela solução?',p:[r('','','Sim|Não|Não sabemos'),a('quais','Se sim, indiquem quais e como'),r('dialogo','Já houve diálogo ou consulta com essas comunidades ou grupos?','Sim, realizado|Planejado|Não'),a('reunioes','Se realizado, listem as reuniões (data e comunidade)')],n:['Sugerimos levar no workshop: os registros das reuniões.']}}
 ]},
 
 {k:'11',title:'Estágio atual e necessidades da equipe',items:[
  {i:'Agora que vocês refletiram sobre todo o negócio através do formulário, queremos saber como resumem o seu estágio atual e do que mais precisam.'},
  {q:{id:'11.1',t:'Qual das descrições abaixo representa melhor o momento do negócio hoje?',p:[r('','','Ainda estamos confirmando se o problema é importante para quem pagaria pela solução|Já confirmamos o problema e estamos buscando os primeiros clientes comprometidos|Já temos clientes comprometidos e estamos organizando uma forma repetível de vender e entregar|Já vendemos de forma repetível e estamos ampliando a operação')]}},
- {q:{id:'11.2',t:'Na visão da equipe, qual é hoje o principal obstáculo para a solução chegar ao mercado? (marque um)',p:[r('','','Tecnologia ainda não pronta|Falta de clientes comprometidos|Modelo de negócio indefinido|Falta de recursos financeiros|Equipe incompleta|Licenças ou regulação|Logística e operação na região|'+OUT)]}},
+ {q:{id:'11.2',t:'Na visão da equipe, qual é hoje o principal obstáculo para a solução chegar ao mercado? (marquem um)',p:[r('','','Tecnologia ainda não pronta|Falta de clientes comprometidos|Modelo de negócio indefinido|Falta de recursos financeiros|Equipe incompleta|Licenças ou regulação|Logística e operação na região|'+OUT)]}},
  {sub:'Necessidades da equipe'},
  {i:'Queremos entender o que vocês acreditam precisar agora, antes do diagnóstico e do plano do programa. Respondam primeiro à pergunta 11.3, com suas palavras, e só depois a 11.4.'},
- {q:{id:'11.3',t:'Liste, com suas palavras, até 5 itens de que a solução mais precisa agora para avançar em direção às metas da pergunta 0B.4. Comece pelo mais importante.',p:[t('1','Item 1 (o mais importante)'),t('2','Item 2'),t('3','Item 3'),t('4','Item 4'),t('5','Item 5')]}},
+ {q:{id:'11.3',t:'Listem, com suas palavras, até 5 itens de que a solução mais precisa agora para avançar em direção às metas da pergunta 0B.4. Comece pelo mais importante.',p:[t('1','Item 1 (o mais importante)'),t('2','Item 2'),t('3','Item 3'),t('4','Item 4'),t('5','Item 5')]}},
  {q:{id:'11.4',t:'De quanto a solução precisa em recursos financeiros nos próximos 12 meses?',p:[r('','','Até R$ 100 mil|R$ 100 a 500 mil|R$ 500 mil a 2 milhões|Mais de R$ 2 milhões|Não precisamos de recursos adicionais|Ainda não calculamos'),
-  c('para','Para quê? (marque até 3)','Desenvolvimento técnico|Testes, certificação ou piloto|Produção|Contratação de pessoas|Vendas e marketing|Capital de giro|'+OUT,3)],n:['O que a equipe espera da Siemens está na pergunta 5.6.']}},
- {q:{id:'11.5',t:'Indique o quanto a equipe concorda com cada afirmação. (1 = discordo totalmente; 5 = concordo totalmente)',
+  c('para','Para quê? (marquem até 3)','Desenvolvimento técnico|Testes, certificação ou piloto|Produção|Contratação de pessoas|Vendas e marketing|Capital de giro|'+OUT,3)]}},
+ {q:{id:'11.5',t:'Indiquem o quanto a equipe concorda com cada afirmação. (1 = discordo totalmente; 5 = concordo totalmente)',
   g:{cols:['1','2','3','4','5'],rows:[['a','a) Temos as competências técnicas necessárias para chegar ao mercado ou escalar'],['b','b) Temos uma pessoa dedicada à área comercial'],['c','c) As pessoas-chave dedicam à solução o tempo que ela precisa'],['d','d) A titularidade da tecnologia está formalizada'],['e','e) Acompanhamos as oportunidades comerciais de forma organizada, com etapas definidas'],['f','f) Conseguiríamos atender vários clientes ao mesmo tempo sem depender só dos fundadores']]}}}
 ]},
 
 {k:'A',tagText:'Tabela A',title:'Registro de conversas com potenciais clientes',items:[
- {i:'Liste as conversas relevantes, uma por linha. Podem usar códigos no lugar dos nomes (Cliente 1, Cliente 2), indicando setor e porte. Acrescentem linhas se precisar.'},
+ {i:'Listem as conversas relevantes, uma por linha. Podem usar códigos no lugar dos nomes (Cliente 1, Cliente 2), indicando setor e porte. Acrescentem linhas se precisar.'},
  {q:{id:'TA',nb:1,t:'Conversas com potenciais clientes',tb:{cols:['Nº','Mês e ano','Cliente (código ou nome)','Setor e porte','Cargo da pessoa','Controla orçamento? (Sim/Não/Não sei)','Confirmou o problema como prioritário? (Sim/Não)','Falou de preço? (Sim/Não)'],n:5,num:1,add:1}}}
 ]},
 
 {k:'B',tagText:'Tabela B',title:'Clientes em negociação (até 3 mais avançados)',items:[
- {i:'Para cada cliente, marque a opção que melhor descreve a situação. Não é preciso anexar nada. O texto em cada linha mostra o que os especialistas podem perguntar no workshop. Se houver menos de 3 clientes em negociação, deixe os demais em branco.'},
+ {i:'Para cada cliente, marquem a opção que melhor descreve a situação. Não é preciso anexar nada. O texto em cada linha mostra o que os especialistas podem perguntar no workshop. Se houver menos de 3 clientes em negociação, deixem os demais em branco.'},
  ...[1,2,3].map(n=>({q:{id:'TB'+n,nb:1,t:'Cliente em negociação '+n,p:[t('cli','Cliente (código ou nome)','','h'),t('set','Setor e porte','','h')],
   rw:[['a','O cliente informou quanto o problema custa para ele?','Não|Deu uma ideia geral|Informou um valor','Ordem de grandeza do valor'],
       ['b','Quem aprova o orçamento nesse cliente?','Não sabemos|Sabemos quem é|Já nos reunimos com essa pessoa','Cargo e data da reunião'],
@@ -523,14 +529,14 @@ const SECTIONS=[
 ]},
 
 {k:'X',tagText:'Anexos',title:'Lista final de anexos',items:[
- {q:{id:'ANX',nb:1,t:'Confira o que foi enviado para a pasta do Google Drive',
+ {q:{id:'ANX',nb:1,t:'Confiram o que foi enviado para a pasta do Google Drive',
   rw:[['1','Deck de pitch (pergunta 0.2)','Sim|Não'],['2','Evidência técnica (pergunta 1.12)','Sim|Não se aplica'],['3','Evidência comercial (pergunta 3.10)','Sim|Não se aplica'],['4','Planilha financeira (pergunta 6.9)','Sim|Não temos'],['5','Cadastro no SisGen (pergunta 9.8)','Sim|Não se aplica'],['6','Licença ambiental ou protocolo (pergunta 10.6)','Sim|Não se aplica']]
    .map(([id,l,o])=>({id,l:id+'. '+l,f:[r('env','Enviado?',o),t('arq','Nome do arquivo','','h')]}))}}
 ]},
 
 {k:'D',tagText:'Declaração',title:'Declaração',items:[
  {q:{id:'DECL',nb:1,t:'Responsável pelo preenchimento',p:[
-  c('ok','Para concluir, clique na caixa abaixo e confirme a declaração:','Declaramos que as respostas deste formulário, inclusive as que não têm anexo, e os documentos enviados refletem a situação atual da solução.',0,true),
+  c('ok','Para concluir, cliquem na caixa abaixo e confirmem a declaração:','Declaramos que as respostas deste formulário, inclusive as que não têm anexo, e os documentos enviados refletem a situação atual da solução.',0,true),
   t('nome','Nome','','h'),t('cargo','Cargo','','h'),t('data','Data','dd/mm/aaaa','s')]}},
  {send:1}
 ]}
@@ -552,7 +558,7 @@ const ATT={
  '1.9':[2,'2_1.9_plano_testes.pdf',MAIS],
  '3.10':[3,'3_3.6_contrato_anonimizado.pdf','Obrigatório, se houver registro escrito em 3.4 ou documento em 3.6'],
  '6.9':[4,'4_6.9_planilha_financeira.xlsx','Obrigatório, se existir'],
- '9.8':[5,'5_9.8_comprovante_sisgen.pdf','Só se marcou algum item e o cadastro existe'],
+ '9.8':[5,'5_9.8_comprovante_sisgen.pdf','Só se marcaram algum item e o cadastro existe'],
  '10.6':[6,'6_10.6_licenca_ambiental.pdf','Só se a licença ambiental foi obtida ou está em andamento']
 };
 
@@ -577,10 +583,10 @@ function opts(key,list,multi,max,box){
 function partKey(q,p,rid){return `${q.id}|${rid?rid+'.':''}${p.k}`}
 function partHTML(q,p,rid){
   const key=partKey(q,p,rid),id=kid(key);
-  const cls='part'+(p.w==='h'?' h':'')+(p.w==='s'?' s':'');
+  const cls='part'+(p.w==='h'?' h':'')+(p.w==='s'?' s':'')+(p.w==='m'?' m':'');
   let body='';
   if(p.ty==='r')body=(p.l?`<div class="pl">${esc(p.l)}</div>`:'')+opts(key,p.o,false);
-  else if(p.ty==='c')body=(p.l?`<div class="pl">${esc(p.l)}</div>`:'')+opts(key,p.o,true,p.max,p.box)+(p.max?`<div class="mx">Marque até ${p.max}.</div>`:'');
+  else if(p.ty==='c')body=(p.l?`<div class="pl">${esc(p.l)}</div>`:'')+opts(key,p.o,true,p.max,p.box)+(p.max?`<div class="mx">Marquem até ${p.max}.</div>`:'');
   else if(p.ty==='t')body=(p.l?`<label class="pl" for="${id}">${esc(p.l)}</label>`:'')+`<input type="text" id="${id}" data-key="${esc(key)}" placeholder="${esc(p.ph||'')}" value="${esc(S[key]||'')}">`;
   else body=(p.l?`<label class="pl" for="${id}">${esc(p.l)}</label>`:'')+`<textarea id="${id}" data-key="${esc(key)}" placeholder="${esc(p.ph||'')}">${esc(S[key]||'')}</textarea>`;
   return `<div class="${cls}">${body}</div>`;
@@ -598,7 +604,9 @@ function gridHTML(q){
 }
 function tbHTML(q){
   const tb=q.tb,n=+S[q.id+'|n']||tb.n;
-  let h=`<div class="tw"><table class="data"><thead><tr>${tb.cols.map(x=>`<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>`;
+  let cg='';
+  if(tb.w){const tot=tb.w.reduce((a,b)=>a+b,0);let k=0;cg='<colgroup>'+tb.cols.map((c,j)=>tb.num&&j===0?'<col style="width:8%">':`<col style="width:${(92*tb.w[k++]/tot).toFixed(2)}%">`).join('')+'</colgroup>'}
+  let h=`<div class="tw"><table class="data${tb.w?' fx':''}">${cg}<thead><tr>${tb.cols.map(x=>`<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>`;
   for(let i=0;i<n;i++){
     h+='<tr>';
     tb.cols.forEach((col,j)=>{
@@ -628,15 +636,20 @@ function hintHTML(n){
 function attHTML(q){
   const a=ATT[q.id];if(!a)return '';
   const pre=a[1].split('_').slice(0,2).join('_')+'_';
-  return `<div class="att"><div class="at">Anexo ${a[0]}: ${esc(a[2])}</div><p>Esta página não recebe arquivos. Envie o documento para a <strong>pasta da PoC no Google Drive</strong>, indicada no kickoff${CONFIG.drive?` (<a href="${esc(CONFIG.drive)}" target="_blank" rel="noopener">abrir a pasta</a>)`:''}. O nome do arquivo deve começar por <code>${esc(pre)}</code>. Exemplo: <code>${esc(a[1])}</code><button type="button" class="btn sm" data-copy="${esc(a[1])}">Copiar nome</button></p>${opts(q.id+'|anexo','Já enviei este anexo para a pasta do Drive',true)}</div>`;
+  return `<div class="att"><div class="at">Anexo ${a[0]}: ${esc(a[2])}</div><p>Esta página não recebe arquivos. Enviem o documento para a <strong>pasta da startup no Google Drive</strong>, indicada no kickoff${CONFIG.drive?` (<a href="${esc(CONFIG.drive)}" target="_blank" rel="noopener">abrir a pasta</a>)`:''}. O nome do arquivo deve começar por <code>${esc(pre)}</code>. Exemplo: <code>${esc(a[1])}</code><button type="button" class="btn sm" data-copy="${esc(a[1])}">Copiar nome</button></p>${opts(q.id+'|anexo','Já enviei este anexo para a pasta do Drive',true)}</div>`;
+}
+function metasHTML(q){
+  let h='<div class="pl">Descrevam as metas</div><div class="tw"><table class="data"><thead><tr><th class="n">Meta</th><th>Qual é a meta?</th></tr></thead><tbody>';
+  for(let i=0;i<3;i++){const key=`${q.id}|m${i}`;h+=`<tr><th scope="row" class="n">${i+1}</th><td><input type="text" id="${kid(key)}" data-key="${key}" aria-label="Meta ${i+1}" value="${esc(S[key]||'')}"></td></tr>`}
+  return h+'</tbody></table></div><div class="pl" style="margin-top:16px">Indicadores de cada meta</div>';
 }
 function qHTML(q){
   return `<article class="q${ANS.has(q.id)?' done':''}" id="q-${kid(q.id)}" data-qid="${esc(q.id)}"><h3><span class="qid">${q.nb?'':esc(q.id)}</span><span>${esc(q.t)}</span></h3>`+
    (q.tab?infoTab(q.tab):'')+(q.p?`<div class="parts">${q.p.map(p=>partHTML(q,p)).join('')}</div>`:'')+
-   (q.g?gridHTML(q):'')+(q.tb?tbHTML(q):'')+(q.rw?rwHTML(q):'')+(q.n||[]).map(hintHTML).join('')+attHTML(q)+'</article>';
+   (q.g?gridHTML(q):'')+(q.mt?metasHTML(q):'')+(q.tb?tbHTML(q):'')+(q.rw?rwHTML(q):'')+(q.n||[]).map(hintHTML).join('')+attHTML(q)+'</article>';
 }
 function importHTML(){
-  return `<div class="info"><button type="button" class="btn bLoad">Retomar preenchimento a partir de um arquivo salvo</button><p class="hint">Use este botão só se você já salvou antes o arquivo de respostas (.json) deste formulário. Ele não serve para enviar anexos.</p><p class="impmsg" role="status"></p></div>`;
+  return `<div class="info"><button type="button" class="btn bLoad">Retomar preenchimento a partir de um arquivo salvo</button><p class="hint">Usem este botão só se vocês já salvaram antes o arquivo de respostas (.json) deste formulário. Ele não serve para enviar anexos.</p><p class="impmsg" role="status"></p></div>`;
 }
 function sendHTML(){
   return `<div class="send" id="send"><h2>Revisar e enviar</h2>
@@ -647,6 +660,7 @@ function sendHTML(){
    <button type="button" class="btn pri" id="bSend" hidden>Enviar respostas</button>
    <button type="button" class="btn${'' }" id="bJson">Salvar respostas em arquivo</button>
    <button type="button" class="btn" id="bTxt">Salvar em texto (.txt)</button>
+   <button type="button" class="btn" id="bPdf" title="Gera um PDF com as respostas, para a startup guardar uma cópia">Baixar PDF (cópia para a startup)</button>
    <button type="button" class="btn" id="bCopy">Copiar respostas</button>
    <button type="button" class="btn bLoad">Retomar preenchimento de um arquivo</button>
   </div>
@@ -661,7 +675,7 @@ function build(){
     h+=`<section class="sec" id="${s.id}"><header><span class="tag">${esc(s.tagText||(s.k?'Seção '+s.k:''))}</span><h2>${esc(s.title)}</h2></header>`;
     const its=i===0?[s.items[0],s.items[s.items.length-1],{open:1},...s.items.slice(1,-1),{close:1}]:s.items;
     its.forEach(it=>{
-      if(it.open)h+='<details class="pre"><summary>Leia as instruções antes de começar</summary><div class="preb">';
+      if(it.open)h+='<details class="pre"><summary>Ler as instruções antes de começar</summary><div class="preb">';
       else if(it.close)h+='</div></details>';
       else if(it.i)h+=`<p class="info${i===0?'':' intro'}">${rich(it.i)}</p>`;
       else if(it.sub)h+=`<h3 class="sub">${esc(it.sub)}</h3>`;
@@ -699,7 +713,7 @@ function refreshProgress(){
     const qs=s.qs.filter(q=>!q.nb||q.id==='0.0');const el=$(`[data-c="${s.id}"]`);
     if(el)el.textContent=qs.length?`${qs.filter(q=>ANS.has(q.id)).length}/${qs.length}`:'';
   });
-  const sum=$('#sumtxt');if(sum)sum.textContent=`Você respondeu ${done} de ${tot} perguntas. Respostas “não” ou “ainda não” são normais neste estágio; pode enviar com perguntas em branco.`;
+  const sum=$('#sumtxt');if(sum)sum.textContent=`Vocês responderam ${done} de ${tot} perguntas. Respostas “não” ou “ainda não” são normais neste estágio; podem enviar com perguntas em branco.`;
 }
 let saveT;
 function changed(){
@@ -718,7 +732,7 @@ function toast(m){const e=$('#toast');e.textContent=m;e.classList.add('on');clea
 function sync(w){w.querySelectorAll('input[type=radio],input[type=checkbox]').forEach(i=>{const l=i.closest('.opt');if(l)l.classList.toggle('on',i.checked)})}
 document.addEventListener('click',e=>{
   const cp=e.target.closest&&e.target.closest('[data-copy]');
-  if(cp){const v=cp.dataset.copy;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>toast('Nome copiado: '+v),()=>toast('Copie o nome manualmente: '+v));return}
+  if(cp){const v=cp.dataset.copy;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>toast('Nome copiado: '+v),()=>toast('Copiem o nome manualmente: '+v));return}
   const i=e.target;
   if(i.matches&&i.matches('input[type=radio]')){
     const w=i.closest('.opts');if(!w)return;const key=w.dataset.key;
@@ -741,7 +755,7 @@ document.addEventListener('change',e=>{
   if(ex&&i.checked){w.querySelectorAll('input[type=checkbox]').forEach(b=>{if(b===i)return;if(ex.includes(i.value)||ex.includes(b.value))b.checked=false})}
   const vals=[...w.querySelectorAll('input[type=checkbox]')].filter(x=>x.checked).map(x=>x.value);
   const max=+w.dataset.max||0;
-  if(max&&vals.length>max){i.checked=false;toast(`Marque no máximo ${max} opções.`);return}
+  if(max&&vals.length>max){i.checked=false;toast(`Marquem no máximo ${max} opções.`);return}
   if(vals.length)S[w.dataset.key]=vals;else delete S[w.dataset.key];
   if(max)w.classList.toggle('full',vals.length>=max);
   sync(w);changed();
@@ -755,8 +769,8 @@ document.addEventListener('input',e=>{
 
 
 /* ---------- consistência das respostas ---------- */
-const EXCL={'5.2|':['Nada específico por enquanto'],'5.4|':['Ainda não definido'],'5.6|':['Ainda não avaliamos'],'6.4|':['Nenhuma','Não sabemos'],'8.1|':['Nenhum'],'8.5|':['NA (não se aplica)'],'8.8|':['Nenhum mecanismo ainda','NA (não se aplica)'],'9.8|':['Nenhum','Não sabemos'],'10.5|':['Nenhuma','Não sabemos']};
-const FU=[['1.1',['Não'],['data','local']],['1.2',['Não'],['data','local']],['1.3',['Não'],['data','local']],['1.4',['Não','Só houve uma rodada'],['rod']],['1.5',['Não, o protótipo ainda é bem diferente da versão final'],['data']],['1.6',['Não'],['tempo','unid','local','periodo']],['1.8',['Não'],['data','local','pub']],['1.9',['Não'],['conc']],['3.3',['Não'],['ordem']],['3.5',['Não'],['alt']],['3.9',['Não'],['desc']],['4.3',['Não'],['preco','por']],['5.1',['Não'],['conc','dif']],['5.3',['Não'],['lista']],['5.8',['Não'],['desc']],['7.2',['Não, a equipe principal da PoC continua'],['papel']],['8.9',['Não'],['cadeia','parc']],['9.1',['Não'],['qual']],['9.2',['Não'],['alt']],['9.4',['Não'],['lgpd']],['9.5',['Não'],['rev']],['9.6',['Não'],['plano']],['9.7',['Não'],['desc']],['10.6',['Não'],['lista']],['10.7',['Não'],['quais','dialogo','reunioes']]];
+const EXCL={'5.2|':['Nada específico por enquanto'],'5.4|':['Ainda não definido'],'5.6|':['Ainda não avaliamos'],'6.4|':['Nenhuma','Não sabemos'],'8.1|':['Nenhum'],'8.5|':['Não se aplica'],'8.8|':['Nenhum mecanismo ainda','Não se aplica'],'9.8|':['Nenhum','Não sabemos'],'10.5|':['Nenhuma','Não sabemos']};
+const FU=[['1.1',['Não'],['data','local']],['1.2',['Não'],['data','local']],['1.3',['Não'],['data','local']],['1.4',['Não','Só houve uma rodada'],['rod']],['1.5',['Não, o protótipo ainda é bem diferente da versão final'],['data']],['1.6',['Não'],['tempo','unid','local','periodo']],['1.8',['Não'],['data','local','pub']],['1.9',['Não'],['conc']],['3.3',['Não'],['ordem']],['3.5',['Não'],['alt']],['3.9',['Não'],['desc']],['4.3',['Não'],['preco','por']],['5.1',['Não'],['conc','dif']],['5.3',['Não'],['lista']],['5.8',['Não'],['desc']],['7.2',['Não, a equipe principal da PoC continua'],['papel']],['8.9',['Não'],['cadeia','parc']],['9.1',['Não'],['qual']],['9.2',['Não'],['alt','altdesc']],['9.4',['Não'],['lgpd']],['9.5',['Não'],['rev']],['9.6',['Não'],['plano']],['9.7',['Não'],['desc']],['10.6',['Não'],['lista']],['10.7',['Não'],['quais','dialogo','reunioes']]];
 const FUM=[['6.4|',['Nenhuma','Não sabemos'],['desc']],['8.8|',['Nenhum mecanismo ainda'],['desc']],['9.8|',['Nenhum','Não sabemos'],['sisgen','rep']],['10.5|',['Nenhuma','Não sabemos'],['aut']]];
 let NW=0,WL=[];
 const num=x=>{if(!has(x))return NaN;let t=String(x).replace(/[^0-9.,]/g,'');if(t.indexOf(',')>=0)t=t.replace(/\./g,'').replace(',','.');else if(/^\d{1,3}(\.\d{3})+$/.test(t))t=t.replace(/\./g,'');return parseFloat(t)};
@@ -765,94 +779,94 @@ function checks(){
   const v=(id,k)=>S[id+'|'+(k||'')];
   const sv=(id,k)=>{const x=v(id,k);return typeof x==='string'?x:''};
   const av=(id,k)=>{const x=v(id,k);return Array.isArray(x)?x:[]};
-  const no=id=>sv(id).startsWith('Não'),yes=id=>sv(id).startsWith('Sim'),f=(id,k)=>has(v(id,k));
+  const no=id=>sv(id).startsWith('Não')&&!sv(id).startsWith('Não se aplica'),yes=id=>sv(id).startsWith('Sim'),f=(id,k)=>has(v(id,k));
 
   /* Seção 1: maturidade da tecnologia */
   const ord=['1.1','1.2','1.3','1.5','1.6','1.9'];
-  ord.forEach((q,i)=>{if(!yes(q))return;for(let j=i-1;j>=0;j--)if(no(ord[j])){add([q,ord[j]],`Em ${q} você marcou “Sim”, mas em ${ord[j]} marcou “Não”. Um teste mais avançado costuma depender dos anteriores. Confira.`);break}});
+  ord.forEach((q,i)=>{if(!yes(q))return;for(let j=i-1;j>=0;j--)if(no(ord[j])){add([q,ord[j]],`Em ${q} vocês marcaram “Sim”, mas em ${ord[j]} marcaram “Não”. Um teste mais avançado costuma depender dos anteriores. Confiram.`);break}});
   const hi=ord.filter(yes).pop(),e12=sv('1.12');
   if(e12){const none=e12.startsWith('Nenhuma');
-    if(none&&hi)add(['1.12',hi],`Em 1.12 você indicou que não há “Sim” na Seção 1, mas marcou “Sim” em ${hi}.`);
-    else if(!none&&!hi)add('1.12',`Em 1.12 você indicou o anexo da pergunta ${e12}, mas não marcou “Sim” em nenhuma pergunta dessa lista.`);
-    else if(!none&&e12!==hi)add(['1.12',hi],`O anexo de 1.12 deve ser o da pergunta mais avançada com “Sim”. Pelas suas respostas, é a ${hi}, mas você indicou a ${e12}.`)}
-  if(yes('1.6')&&sv('1.7')==='Não houve operação no local real')add(['1.6','1.7'],'Em 1.6 você disse que a solução já operou no local real, mas em 1.7 marcou que não houve operação no local real.');
-  if(no('1.6')&&sv('1.7')&&sv('1.7')!=='Não houve operação no local real')add(['1.6','1.7'],'Em 1.6 você marcou que a solução não operou no local real, mas respondeu em 1.7 quem a operava.');
-  if(no('1.6')&&sv('1.8').startsWith('Sim, em uso real'))add(['1.6','1.8'],'Em 1.8 você marcou demonstração em uso real, mas em 1.6 marcou que a solução não operou no local real.');
+    if(none&&hi)add(['1.12',hi],`Em 1.12 vocês indicaram que não há “Sim” na Seção 1, mas marcaram “Sim” em ${hi}.`);
+    else if(!none&&!hi)add('1.12',`Em 1.12 vocês indicaram o anexo da pergunta ${e12}, mas não marcaram “Sim” em nenhuma pergunta dessa lista.`);
+    else if(!none&&e12!==hi)add(['1.12',hi],`O anexo de 1.12 deve ser o da pergunta mais avançada com “Sim”. Pelas suas respostas, é a ${hi}, mas vocês indicaram a ${e12}.`)}
+  if(yes('1.6')&&sv('1.7')==='Não houve operação no local real')add(['1.6','1.7'],'Em 1.6 vocês disseram que a solução já operou no local real, mas em 1.7 marcaram que não houve operação no local real.');
+  if(no('1.6')&&sv('1.7')&&sv('1.7')!=='Não houve operação no local real')add(['1.6','1.7'],'Em 1.6 vocês marcaram que a solução não operou no local real, mas responderam em 1.7 quem a operava.');
+  if(no('1.6')&&sv('1.8').startsWith('Sim, em uso real'))add(['1.6','1.8'],'Em 1.8 vocês marcaram demonstração em uso real, mas em 1.6 marcaram que a solução não operou no local real.');
   const L10=['A ideia central','As partes funcionam','Funciona em condições','Um protótipo','Funcionou no local real, operada pela nossa','Funcionou no local real, operada pelo cliente','A versão final está qualificada','Já está em operação comercial'];
   const lv=L10.findIndex(x=>sv('1.10').startsWith(x));
   if(lv>=0){
     const mq=['1.1','1.2','1.3','1.5','1.6','1.6','1.9'][lv];
-    if(mq&&lv<6&&no(mq))add(['1.10',mq],`Em 1.10 você indicou um ponto da escala que exige “Sim” em ${mq}, mas em ${mq} marcou “Não”.`);
-    if(lv>=6&&f('1.9')&&!yes('1.9'))add(['1.10','1.9'],'Em 1.10 você indicou versão final qualificada ou operação comercial, mas em 1.9 não marcou “Sim”.');
-    if(lv>=4&&no('1.6'))add(['1.10','1.6'],'Em 1.10 você indicou que a solução funcionou no local real, mas em 1.6 marcou “Não”.');
-    if(lv===5&&f('1.7')&&!['Os futuros usuários (cliente ou comunidade)','Os dois'].includes(sv('1.7')))add(['1.10','1.7'],'Em 1.10 você indicou operação pelo cliente ou usuário, mas em 1.7 não marcou os futuros usuários como operadores.');
-    if(lv===7&&f('6.6')&&sv('6.6')!=='Já temos receita')add(['1.10','6.6'],'Em 1.10 você indicou operação comercial com clientes pagantes, mas em 6.6 não marcou “Já temos receita”.');
-    if(lv===7&&sv('3.6')==='Nenhum')add(['1.10','3.6'],'Em 1.10 você indicou operação comercial com clientes pagantes, mas em 3.6 marcou que não há documento de compromisso.');
+    if(mq&&lv<6&&no(mq))add(['1.10',mq],`Em 1.10 vocês indicaram um ponto da escala que exige “Sim” em ${mq}, mas em ${mq} marcaram “Não”.`);
+    if(lv>=6&&f('1.9')&&!yes('1.9'))add(['1.10','1.9'],'Em 1.10 vocês indicaram versão final qualificada ou operação comercial, mas em 1.9 não marcaram “Sim”.');
+    if(lv>=4&&no('1.6'))add(['1.10','1.6'],'Em 1.10 vocês indicaram que a solução funcionou no local real, mas em 1.6 marcaram “Não”.');
+    if(lv===5&&f('1.7')&&!['Os futuros usuários (cliente ou comunidade)','Os dois'].includes(sv('1.7')))add(['1.10','1.7'],'Em 1.10 vocês indicaram operação pelo cliente ou usuário, mas em 1.7 não marcaram os futuros usuários como operadores.');
+    if(lv===7&&f('6.6')&&sv('6.6')!=='Já temos receita')add(['1.10','6.6'],'Em 1.10 vocês indicaram operação comercial com clientes pagantes, mas em 6.6 não marcaram “Já temos receita”.');
+    if(lv===7&&sv('3.6')==='Nenhum')add(['1.10','3.6'],'Em 1.10 vocês indicaram operação comercial com clientes pagantes, mas em 3.6 marcaram que não há documento de compromisso.');
   }
 
   /* Seção 0 e 2 */
   if(sv('0.1').startsWith('Hardware')){
-    ['2.5','2.6','2.7'].forEach(q=>{if(sv(q).startsWith('NA'))add(['0.1',q],`Em 0.1 você marcou hardware, mas em ${q} respondeu NA (não se aplica).`)});
-    ['2.8','2.9'].forEach(q=>{if(sv(q,'st').startsWith('NA'))add(['0.1',q],`Em 0.1 você marcou hardware, mas em ${q} respondeu NA (não se aplica).`)});
+    ['2.5','2.6','2.7'].forEach(q=>{if(sv(q).startsWith('Não se aplica'))add(['0.1',q],`Em 0.1 vocês marcaram hardware, mas em ${q} responderam “Não se aplica”.`)});
+    ['2.8','2.9'].forEach(q=>{if(sv(q,'st').startsWith('Não se aplica'))add(['0.1',q],`Em 0.1 vocês marcaram hardware, mas em ${q} responderam “Não se aplica”.`)});
   }
-  if(['Nenhuma','Em avaliação'].includes(sv('2.1'))&&(f('2.1','num')||f('2.1','tit')))add('2.1','Em 2.1 você marcou que não há proteção, mas preencheu número de pedido ou titular.');
-  if(sv('2.1')==='Nenhuma'&&av('5.2').includes('Patente ou segredo industrial'))add(['2.1','5.2'],'Em 5.2 você citou patente ou segredo industrial como barreira à cópia, mas em 2.1 marcou que não há proteção.');
+  if(['Nenhuma','Em avaliação'].includes(sv('2.1'))&&(f('2.1','num')||f('2.1','tit')))add('2.1','Em 2.1 vocês marcaram que não há proteção, mas preencheram número de pedido ou titular.');
+  if(sv('2.1')==='Nenhuma'&&av('5.2').includes('Patente ou segredo industrial'))add(['2.1','5.2'],'Em 5.2 vocês citaram patente ou segredo industrial como barreira à cópia, mas em 2.1 marcaram que não há proteção.');
   const n8=num(v('2.8','v')),n9=num(v('2.9','v'));
-  if(isFinite(n8)&&isFinite(n9)&&n9>n8)add(['2.8','2.9'],'O custo por unidade em lote maior (2.9) está acima do custo atual (2.8). Em escala o custo costuma cair. Confira.');
+  if(isFinite(n8)&&isFinite(n9)&&n9>n8)add(['2.8','2.9'],'O custo por unidade em lote maior (2.9) está acima do custo atual (2.8). Em escala o custo costuma cair. Confiram.');
 
   /* Seção 3 */
   const rng={'0':[0,0],'1 a 4':[1,4],'5 a 9':[5,9],'10 ou mais':[10,1e9]};
   const nTA=+S['TA|n']||5;let taRows=0,taDec=0;
   for(let i=0;i<nTA;i++){let any=false;for(let j=1;j<8;j++)if(has(S[`TA|r${i}c${j}`]))any=true;if(any)taRows++;if(String(S[`TA|r${i}c5`]||'').trim().toLowerCase()==='sim')taDec++}
   const dr=rng[sv('3.1','dec')];
-  if(dr&&taRows&&(taDec<dr[0]||taDec>dr[1]))add(['3.1','TA'],`Em 3.1 você informou ${sv('3.1','dec')} decisores, mas a Tabela A tem ${taDec} linha(s) com “Controla orçamento? Sim”. Os dois números devem coincidir.`);
-  if(sv('3.1','usu')==='0'&&sv('3.1','inf')==='0'&&sv('3.1','dec')==='0'&&((sv('3.2')&&sv('3.2')!=='Nenhuma')||(sv('3.8')&&sv('3.8')!=='Nenhum')||(sv('3.7')&&sv('3.7')!=='0')||yes('3.4')))add('3.1','Em 3.1 você informou que não conversou com ninguém, mas respondeu perguntas que dependem dessas conversas (3.2, 3.4, 3.7 ou 3.8).');
+  if(dr&&taRows&&(taDec<dr[0]||taDec>dr[1]))add(['3.1','TA'],`Em 3.1 vocês informaram ${sv('3.1','dec')} decisores, mas a Tabela A tem ${taDec} linha(s) com “Controla orçamento? Sim”. Os dois números devem coincidir.`);
+  if(sv('3.1','usu')==='0'&&sv('3.1','inf')==='0'&&sv('3.1','dec')==='0'&&((sv('3.2')&&sv('3.2')!=='Nenhuma')||(sv('3.8')&&sv('3.8')!=='Nenhum')||(sv('3.7')&&sv('3.7')!=='0')||yes('3.4')))add('3.1','Em 3.1 vocês informaram que não conversaram com ninguém, mas responderam perguntas que dependem dessas conversas (3.2, 3.4, 3.7 ou 3.8).');
   const docs=['Contrato assinado','Piloto pago, com contrato ou pedido de compra','Carta de intenção de compra assinada pelo cliente'];
-  if(docs.includes(sv('3.6'))&&sv('3.4')==='Não')add(['3.4','3.6'],'Em 3.6 você tem documento de compromisso com cliente, mas em 3.4 marcou que nenhum decisor declarou que pagaria.');
+  if(docs.includes(sv('3.6'))&&sv('3.4')==='Não')add(['3.4','3.6'],'Em 3.6 vocês têm documento de compromisso com cliente, mas em 3.4 marcaram que nenhum decisor declarou que pagaria.');
   const strong=sv('3.4').startsWith('Sim, por escrito')||docs.includes(sv('3.6'))||sv('3.6').startsWith('Memorando')||sv('3.6').startsWith('Proposta');
   const e310=sv('3.10');
-  if(e310.startsWith('Nenhuma')&&(sv('3.4').startsWith('Sim, por escrito')||(sv('3.6')&&!['Nenhum'].includes(sv('3.6'))&&!sv('3.6').startsWith('Preço indicativo'))))add(['3.10','3.4','3.6'],'Em 3.10 você marcou que não há documento, mas 3.4 ou 3.6 indicam registro escrito. O anexo comercial é obrigatório nesse caso.');
-  if(e310==='3.6'&&(sv('3.6')==='Nenhum'||sv('3.6').startsWith('Preço indicativo')))add(['3.10','3.6'],'Em 3.10 você indicou um documento de 3.6, mas em 3.6 marcou que não há documento de compromisso.');
-  if(e310==='3.4'&&f('3.4')&&!sv('3.4').startsWith('Sim, por escrito'))add(['3.10','3.4'],'Em 3.10 você indicou o registro escrito de 3.4, mas em 3.4 não marcou declaração por escrito.');
+  if(e310.startsWith('Nenhuma')&&(sv('3.4').startsWith('Sim, por escrito')||(sv('3.6')&&!['Nenhum'].includes(sv('3.6'))&&!sv('3.6').startsWith('Preço indicativo'))))add(['3.10','3.4','3.6'],'Em 3.10 vocês marcaram que não há documento, mas 3.4 ou 3.6 indicam registro escrito. O anexo comercial é obrigatório nesse caso.');
+  if(e310==='3.6'&&(sv('3.6')==='Nenhum'||sv('3.6').startsWith('Preço indicativo')))add(['3.10','3.6'],'Em 3.10 vocês indicaram um documento de 3.6, mas em 3.6 marcaram que não há documento de compromisso.');
+  if(e310==='3.4'&&f('3.4')&&!sv('3.4').startsWith('Sim, por escrito'))add(['3.10','3.4'],'Em 3.10 vocês indicaram o registro escrito de 3.4, mas em 3.4 não marcaram declaração por escrito.');
   let tbN=0;for(let n=1;n<=3;n++)if(Object.keys(S).some(k=>k.startsWith('TB'+n+'|')&&has(S[k])))tbN++;
-  if(sv('3.7')==='0'&&tbN)add(['3.7','TB1'],'Em 3.7 você informou 0 clientes em negociação, mas preencheu a Tabela B.');
-  if(f('3.7')&&sv('3.7')!=='0'&&!tbN)add(['3.7','TB1'],'Em 3.7 você informou clientes em negociação, mas a Tabela B está vazia.');
-  if((sv('3.7')==='1'&&tbN>1)||(sv('3.7')==='2'&&tbN>2))add(['3.7','TB1'],`Em 3.7 você informou ${sv('3.7')} cliente(s) em negociação, mas a Tabela B tem ${tbN} preenchidos.`);
+  if(sv('3.7')==='0'&&tbN)add(['3.7','TB1'],'Em 3.7 vocês informaram 0 clientes em negociação, mas preencheram a Tabela B.');
+  if(f('3.7')&&sv('3.7')!=='0'&&!tbN)add(['3.7','TB1'],'Em 3.7 vocês informaram clientes em negociação, mas a Tabela B está vazia.');
+  if((sv('3.7')==='1'&&tbN>1)||(sv('3.7')==='2'&&tbN>2))add(['3.7','TB1'],`Em 3.7 vocês informaram ${sv('3.7')} cliente(s) em negociação, mas a Tabela B tem ${tbN} preenchidos.`);
 
   /* Seção 4 */
-  if(sv('4.3')==='Não'&&f('4.4')&&sv('4.4')!=='Não foi apresentado')add(['4.3','4.4'],'Em 4.3 você marcou que não há preço definido, mas em 4.4 informou a reação dos clientes ao preço.');
-  if(sv('4.3')==='Não'&&sv('4.6')==='Sim')add(['4.3','4.6'],'Em 4.6 você marcou margem positiva, mas em 4.3 marcou que não há preço definido.');
-  if(sv('4.6')==='Sim'&&sv('2.8','st')==='Ainda não calculado')add(['2.8','4.6'],'Em 4.6 você marcou margem positiva, mas em 2.8 o custo de produção ainda não foi calculado.');
-  if(sv('4.1')==='Ainda não definido'&&sv('4.2')&&sv('4.2')!=='Ainda não apresentamos')add(['4.1','4.2'],'Em 4.1 o modelo de receita ainda não está definido, mas em 4.2 você informou a reação dos clientes a ele.');
+  if(sv('4.3')==='Não'&&f('4.4')&&sv('4.4')!=='Não foi apresentado')add(['4.3','4.4'],'Em 4.3 vocês marcaram que não há preço definido, mas em 4.4 informaram a reação dos clientes ao preço.');
+  if(sv('4.3')==='Não'&&sv('4.6')==='Sim')add(['4.3','4.6'],'Em 4.6 vocês marcaram margem positiva, mas em 4.3 marcaram que não há preço definido.');
+  if(sv('4.6')==='Sim'&&sv('2.8','st')==='Ainda não calculado')add(['2.8','4.6'],'Em 4.6 vocês marcaram margem positiva, mas em 2.8 o custo de produção ainda não foi calculado.');
+  if(sv('4.1')==='Ainda não definido'&&sv('4.2')&&sv('4.2')!=='Ainda não apresentamos')add(['4.1','4.2'],'Em 4.1 o modelo de receita ainda não está definido, mas em 4.2 vocês informaram a reação dos clientes a ele.');
 
   /* Seção 5 */
-  if(av('5.4').includes('Ainda não definido')&&sv('5.5').startsWith('Sim'))add(['5.4','5.5'],'Em 5.5 você disse que os caminhos até os clientes já geraram oportunidades, mas em 5.4 marcou que eles ainda não estão definidos.');
-  if(sv('5.7').startsWith('Sim')&&av('5.6').includes('Ainda não avaliamos'))add(['5.6','5.7'],'Em 5.7 você disse que o papel da Siemens já foi discutido, mas em 5.6 marcou “Ainda não avaliamos”.');
+  if(av('5.4').includes('Ainda não definido')&&sv('5.5').startsWith('Sim'))add(['5.4','5.5'],'Em 5.5 vocês disseram que os caminhos até os clientes já geraram oportunidades, mas em 5.4 marcaram que eles ainda não estão definidos.');
+  if(sv('5.7').startsWith('Sim')&&av('5.6').includes('Ainda não avaliamos'))add(['5.6','5.7'],'Em 5.7 vocês disseram que o papel da Siemens já foi discutido, mas em 5.6 marcaram “Ainda não avaliamos”.');
 
   /* Seção 6 */
   const q63=ALLQ.find(q=>q.id==='6.3');
   q63.rw.forEach(r=>{const x=k=>sv('6.3',r.id+'.'+k);
-    if(x('rec')==='Não'&&(has(S['6.3|'+r.id+'.fonte'])||has(S['6.3|'+r.id+'.ano'])||x('valor')||x('exec')))add('6.3',`Em 6.3, linha ${r.id}), você marcou “Recebeu? Não”, mas preencheu fonte, ano, valor ou execução.`);
-    if(x('rec')==='Sim'&&!x('valor'))add('6.3',`Em 6.3, linha ${r.id}), você marcou “Recebeu? Sim”, mas não escolheu o valor.`)});
-  if(sv('6.2','id')==='0'&&(f('6.2','nomes')||(sv('6.2','cand')&&sv('6.2','cand')!=='Nenhuma')))add('6.2','Em 6.2 você informou 0 editais identificados, mas listou nomes ou uma candidatura em andamento.');
-  if(sv('6.6')==='Já temos receita'&&sv('6.9').includes('só de custos'))add(['6.6','6.9'],'Em 6.6 você disse que já tem receita, mas em 6.9 marcou que ainda não há faturamento.');
-  if(sv('6.6')==='Já temos receita'&&sv('3.4')==='Não'&&sv('3.6')==='Nenhum')add(['6.6','3.4','3.6'],'Em 6.6 você disse que já tem receita, mas 3.4 e 3.6 indicam que não há cliente comprometido.');
-  if(sv('6.9').startsWith('Anexada')&&sv('6.7','d')==='Não')add(['6.7','6.9'],'Em 6.9 você disse que anexou a planilha com projeção, mas em 6.7 marcou “Não” para projeções financeiras.');
+    if(x('rec')==='Não'&&(has(S['6.3|'+r.id+'.fonte'])||x('valor')||x('exec')))add('6.3',`Em 6.3, linha ${r.id}), vocês marcaram “Recebeu? Não”, mas preencheram fonte e ano, valor ou execução.`);
+    if(x('rec')==='Sim'&&!x('valor'))add('6.3',`Em 6.3, linha ${r.id}), vocês marcaram “Recebeu? Sim”, mas não escolheram o valor.`)});
+  if(sv('6.2','id')==='0'&&(f('6.2','nomes')||(sv('6.2','cand')&&sv('6.2','cand')!=='Nenhuma')))add('6.2','Em 6.2 vocês informaram 0 editais identificados, mas listaram nomes ou uma candidatura em andamento.');
+  if(sv('6.6')==='Já temos receita'&&sv('6.9').includes('só de custos'))add(['6.6','6.9'],'Em 6.6 vocês disseram que já têm receita, mas em 6.9 marcaram que ainda não há faturamento.');
+  if(sv('6.6')==='Já temos receita'&&sv('3.4')==='Não'&&sv('3.6')==='Nenhum')add(['6.6','3.4','3.6'],'Em 6.6 vocês disseram que já têm receita, mas 3.4 e 3.6 indicam que não há cliente comprometido.');
+  if(sv('6.9').startsWith('Anexada')&&sv('6.7','d')==='Não')add(['6.7','6.9'],'Em 6.9 vocês disseram que anexaram a planilha com projeção, mas em 6.7 marcaram “Não” para projeções financeiras.');
 
   /* Seção 7 */
   const L74=[...'abcdefghijklmn'],L75=[...'abcdefgh'];
   const falta=L74.some(x=>sv('7.4',x)==='Falta')||L75.some(x=>sv('7.5',x)==='Falta');
   const ans=L74.some(x=>sv('7.4',x))||L75.some(x=>sv('7.5',x));
-  if(sv('7.6').startsWith('NA')&&falta)add(['7.6','7.4','7.5'],'Em 7.6 você marcou que nenhum item está como “Falta”, mas há itens com “Falta” em 7.4 ou 7.5.');
-  if((yes('7.6')||sv('7.6')==='Não')&&ans&&!falta)add(['7.6','7.4','7.5'],'Em 7.6 você respondeu sobre plano para os itens em falta, mas nenhum item está como “Falta” em 7.4 ou 7.5.');
-  if(sv('7.3')==='Não'&&sv('7.4','e')==='Temos na equipe')add(['7.3','7.4'],'Em 7.3 você marcou que não há responsável comercial, mas em 7.4 (e) marcou que a equipe tem a competência de vendas.');
+  if(sv('7.6').startsWith('Não se aplica')&&falta)add(['7.6','7.4','7.5'],'Em 7.6 vocês marcaram que nenhum item está como “Falta”, mas há itens com “Falta” em 7.4 ou 7.5.');
+  if((yes('7.6')||sv('7.6')==='Não')&&ans&&!falta)add(['7.6','7.4','7.5'],'Em 7.6 vocês responderam sobre plano para os itens em falta, mas nenhum item está como “Falta” em 7.4 ou 7.5.');
+  if(sv('7.3')==='Não'&&sv('7.4','e')==='Temos na equipe')add(['7.3','7.4'],'Em 7.3 vocês marcaram que não há responsável comercial, mas em 7.4 (e) marcaram que a equipe tem a competência de vendas.');
   const b115=+sv('11.5','b'),d115=+sv('11.5','d'),a115=+sv('11.5','a');
-  if(sv('7.3')==='Sim, com dedicação integral'&&b115&&b115<=2)add(['7.3','11.5'],'Em 7.3 há responsável comercial em dedicação integral, mas em 11.5 (b) você discorda de que há uma pessoa dedicada à área comercial.');
-  if(sv('7.3')==='Não'&&b115>=4)add(['7.3','11.5'],'Em 7.3 você marcou que não há responsável comercial, mas em 11.5 (b) você concorda que há uma pessoa dedicada.');
-  if(['Não está definida','Não sabemos'].includes(sv('2.2'))&&d115>=4)add(['2.2','11.5'],'Em 2.2 a titularidade não está definida, mas em 11.5 (d) você concorda que ela está formalizada.');
-  if(sv('2.2').startsWith('Sim, é só nossa')&&d115&&d115<=2)add(['2.2','11.5'],'Em 2.2 a titularidade é só da equipe, mas em 11.5 (d) você discorda de que ela está formalizada.');
-  if(sv('7.4','a')==='Falta'&&a115>=4)add(['7.4','11.5'],'Em 7.4 (a) falta competência de desenvolvimento técnico, mas em 11.5 (a) você concorda que a equipe tem as competências técnicas.');
-  if(sv('7.7','a')==='NA'||sv('7.7','b')==='NA'){if(!f('7.7','na'))add('7.7','Em 7.7 você marcou NA e não escreveu a justificativa.')}
+  if(sv('7.3')==='Sim, com dedicação integral'&&b115&&b115<=2)add(['7.3','11.5'],'Em 7.3 há responsável comercial em dedicação integral, mas em 11.5 (b) vocês discordam de que há uma pessoa dedicada à área comercial.');
+  if(sv('7.3')==='Não'&&b115>=4)add(['7.3','11.5'],'Em 7.3 vocês marcaram que não há responsável comercial, mas em 11.5 (b) vocês concordam que há uma pessoa dedicada.');
+  if(['Não está definida','Não sabemos'].includes(sv('2.2'))&&d115>=4)add(['2.2','11.5'],'Em 2.2 a titularidade não está definida, mas em 11.5 (d) vocês concordam que ela está formalizada.');
+  if(sv('2.2').startsWith('Sim, é só nossa')&&d115&&d115<=2)add(['2.2','11.5'],'Em 2.2 a titularidade é só da equipe, mas em 11.5 (d) vocês discordam de que ela está formalizada.');
+  if(sv('7.4','a')==='Falta'&&a115>=4)add(['7.4','11.5'],'Em 7.4 (a) falta competência de desenvolvimento técnico, mas em 11.5 (a) vocês concordam que a equipe tem as competências técnicas.');
+  if(sv('7.7','a')==='Não se aplica'||sv('7.7','b')==='Não se aplica'){if(!f('7.7','na'))add('7.7','Em 7.7 vocês marcaram “Não se aplica” e não escreveram a justificativa.')}
 
   /* Seção 8 */
   const q82=ALLQ.find(q=>q.id==='8.2'),R82={};q82.rw.forEach(r=>{if(r.id)R82[r.id]=r});
@@ -864,55 +878,56 @@ function checks(){
   if(m81.length){
     for(const t in T82){const marked=m81.some(x=>x.startsWith(N82[t]));
       if(!marked&&T82[t].some(id=>meaning(id,'hoje')||meaning(id,'est')))add(['8.1','8.2'],`Há indicadores de “${N82[t]}” preenchidos em 8.2, mas esse tipo de impacto não está marcado em 8.1.`)}
-    if(!m81.some(x=>x.startsWith(N82.grup))&&'abcdefg'.split('').some(id=>sv('8.7',id+'.hoje')==='Sim'||sv('8.7',id+'.fut')==='Sim'))add(['8.1','8.7'],'Em 8.7 você marcou grupos beneficiados, mas em 8.1 não marcou “Benefícios para grupos da região”.');
+    if(!m81.some(x=>x.startsWith(N82.grup))&&'abcdefg'.split('').some(id=>sv('8.7',id+'.hoje')==='Sim'||sv('8.7',id+'.fut')==='Sim'))add(['8.1','8.7'],'Em 8.7 vocês marcaram grupos beneficiados, mas em 8.1 não marcaram “Benefícios para grupos da região”.');
   }
   const bad=[];
   ks.forEach(id=>{const r=R82[id],ho=r.f[0].o.split('|'),es=r.f[1].o.split('|');ho.pop();es.pop();if(ho.join('|')!==es.join('|'))return;
     const i=ho.indexOf(sv('8.2',id+'.hoje')),j=es.indexOf(sv('8.2',id+'.est'));if(i>=0&&j>=0&&j<i)bad.push(r.l.replace(/^[a-j]\) /,''))});
-  if(bad.length)add('8.2',`Em 8.2 a estimativa para 12 meses é menor que o valor de hoje em: ${bad.join('; ')}. Confira se é isso mesmo.`);
+  if(bad.length)add('8.2',`Em 8.2 a estimativa para 12 meses é menor que o valor de hoje em: ${bad.join('; ')}. Confiram se é isso mesmo.`);
   const anyH=ks.some(id=>meaning(id,'hoje')),anyE=ks.some(id=>meaning(id,'est')),anyAns=ks.some(id=>sv('8.2',id+'.hoje')||sv('8.2',id+'.est'));
-  if(sv('8.3')==='Não temos números'&&(anyH||anyE))add(['8.2','8.3'],'Em 8.3 você marcou que não tem números, mas preencheu faixas em 8.2.');
-  if(sv('8.3')==='Medidos no piloto'&&anyAns&&!anyH)add(['8.2','8.3'],'Em 8.3 você marcou que os números foram medidos no piloto, mas em 8.2 nenhum valor de hoje está como medido.');
+  if(sv('8.3')==='Não temos números'&&(anyH||anyE))add(['8.2','8.3'],'Em 8.3 vocês marcaram que não têm números, mas preencheram faixas em 8.2.');
+  if(sv('8.3')==='Medidos no piloto'&&anyAns&&!anyH)add(['8.2','8.3'],'Em 8.3 vocês marcaram que os números foram medidos no piloto, mas em 8.2 nenhum valor de hoje está como medido.');
   const q87=ALLQ.find(q=>q.id==='8.7'),nb=[],dp=[];
   q87.rw.forEach(r=>{const nm=r.l.replace(/~$/,'')+(S['8.7|'+r.id+'#l']?' '+S['8.7|'+r.id+'#l']:''),hh=sv('8.7',r.id+'.hoje'),fu=sv('8.7',r.id+'.fut'),bn=sv('8.7',r.id+'.ben');
     if(hh==='Não'&&fu==='Não'&&bn)nb.push(nm);if(hh==='Sim'&&fu==='Não')dp.push(nm)});
-  if(nb.length)add('8.7',`Em 8.7 você marcou “Não” para hoje e para 12 meses, mas escolheu um benefício em: ${nb.join('; ')}.`);
-  if(dp.length)add('8.7',`Em 8.7 você marcou que beneficia hoje, mas não beneficiará em 12 meses: ${dp.join('; ')}. Confira.`);
+  if(nb.length)add('8.7',`Em 8.7 vocês marcaram “Não” para hoje e para 12 meses, mas escolheram um benefício em: ${nb.join('; ')}.`);
+  if(dp.length)add('8.7',`Em 8.7 vocês marcaram que beneficia hoje, mas não beneficiará em 12 meses: ${dp.join('; ')}. Confiram.`);
 
   /* Seção 10 e 11 */
-  if((av('10.5').includes('Terra indígena')||av('10.5').includes('Território quilombola'))&&sv('10.7')==='Não')add(['10.5','10.7'],'Em 10.5 a operação ocorre perto de terra indígena ou território quilombola, mas em 10.7 você marcou que nenhuma comunidade pode ser afetada. Confira.');
+  if((av('10.5').includes('Terra indígena')||av('10.5').includes('Território quilombola'))&&sv('10.7')==='Não')add(['10.5','10.7'],'Em 10.5 a operação ocorre perto de terra indígena ou território quilombola, mas em 10.7 vocês marcaram que nenhuma comunidade pode ser afetada. Confiram.');
   const s111=sv('11.1');
-  if(s111.startsWith('Já vendemos')&&((f('6.6')&&sv('6.6')!=='Já temos receita')||sv('3.6')==='Nenhum'))add(['11.1','6.6','3.6'],'Em 11.1 você disse que já vende de forma repetível, mas 6.6 ou 3.6 indicam que não há receita ou cliente comprometido.');
-  if(s111.startsWith('Já temos clientes comprometidos')&&(sv('3.6')==='Nenhum'||sv('3.4')==='Não'))add(['11.1','3.4','3.6'],'Em 11.1 você disse que já tem clientes comprometidos, mas 3.4 ou 3.6 indicam que não há compromisso.');
-  if(s111.startsWith('Ainda estamos confirmando')&&sv('6.6')==='Já temos receita')add(['11.1','6.6'],'Em 11.1 você disse que ainda confirma o problema, mas em 6.6 marcou que já tem receita.');
-  if(sv('11.2')==='Falta de recursos financeiros'&&sv('11.4')==='Não precisamos de recursos adicionais')add(['11.2','11.4'],'Em 11.2 o principal obstáculo é a falta de recursos financeiros, mas em 11.4 você marcou que não precisa de recursos adicionais.');
-  if(sv('11.2')==='Tecnologia ainda não pronta'&&lv>=6)add(['11.2','1.10'],'Em 11.2 o principal obstáculo é a tecnologia não estar pronta, mas em 1.10 você indicou versão final qualificada ou operação comercial.');
-  if(sv('11.2')==='Licenças ou regulação'&&sv('10.6')==='Não')add(['11.2','10.6'],'Em 11.2 o principal obstáculo são licenças ou regulação, mas em 10.6 você marcou que a solução não precisa de licenças.');
-  if(sv('11.4')==='Não precisamos de recursos adicionais'&&av('11.4','para').length)add('11.4','Em 11.4 você marcou que não precisa de recursos adicionais, mas escolheu para quê.');
+  if(s111.startsWith('Já vendemos')&&((f('6.6')&&sv('6.6')!=='Já temos receita')||sv('3.6')==='Nenhum'))add(['11.1','6.6','3.6'],'Em 11.1 vocês disseram que já vendem de forma repetível, mas 6.6 ou 3.6 indicam que não há receita ou cliente comprometido.');
+  if(s111.startsWith('Já temos clientes comprometidos')&&(sv('3.6')==='Nenhum'||sv('3.4')==='Não'))add(['11.1','3.4','3.6'],'Em 11.1 vocês disseram que já têm clientes comprometidos, mas 3.4 ou 3.6 indicam que não há compromisso.');
+  if(s111.startsWith('Ainda estamos confirmando')&&sv('6.6')==='Já temos receita')add(['11.1','6.6'],'Em 11.1 vocês disseram que ainda confirmam o problema, mas em 6.6 marcaram que já têm receita.');
+  if(sv('11.2')==='Falta de recursos financeiros'&&sv('11.4')==='Não precisamos de recursos adicionais')add(['11.2','11.4'],'Em 11.2 o principal obstáculo é a falta de recursos financeiros, mas em 11.4 vocês marcaram que não precisam de recursos adicionais.');
+  if(sv('11.2')==='Tecnologia ainda não pronta'&&lv>=6)add(['11.2','1.10'],'Em 11.2 o principal obstáculo é a tecnologia não estar pronta, mas em 1.10 vocês indicaram versão final qualificada ou operação comercial.');
+  if(sv('11.2')==='Licenças ou regulação'&&sv('10.6')==='Não')add(['11.2','10.6'],'Em 11.2 o principal obstáculo são licenças ou regulação, mas em 10.6 vocês marcaram que a solução não precisa de licenças.');
+  if(sv('11.4')==='Não precisamos de recursos adicionais'&&av('11.4','para').length)add('11.4','Em 11.4 vocês marcaram que não precisam de recursos adicionais, mas escolheram para quê.');
 
   /* Follow-ups preenchidos quando a pergunta principal é “não” */
-  FU.forEach(([q,vals,ch])=>{if(vals.includes(sv(q))&&ch.some(k=>f(q,k)))add(q,`Em ${q} você respondeu “${sv(q)}”, mas preencheu um campo que só vale para quem respondeu “sim”.`)});
-  FUM.forEach(([key,vals,ch])=>{const q=key.slice(0,-1);if(av(q).some(x=>vals.includes(x))&&ch.some(k=>f(q,k)))add(q,`Em ${q} você marcou “${av(q).filter(x=>vals.includes(x)).join(', ')}”, mas preencheu um campo que só vale para quem marcou algum item.`)});
+  FU.forEach(([q,vals,ch])=>{if(vals.includes(sv(q))&&ch.some(k=>f(q,k)))add(q,`Em ${q} vocês responderam “${sv(q)}”, mas preencheram um campo que só vale para quem respondeu “sim”.`)});
+  FUM.forEach(([key,vals,ch])=>{const q=key.slice(0,-1);if(av(q).some(x=>vals.includes(x))&&ch.some(k=>f(q,k)))add(q,`Em ${q} vocês marcaram “${av(q).filter(x=>vals.includes(x)).join(', ')}”, mas preencheram um campo que só vale para quem marcou algum item.`)});
 
+  if(sv('9.2','alt')==='Não'&&f('9.2','altdesc'))add('9.2','Em 9.2 vocês marcaram que não há alternativa prevista, mas descreveram uma alternativa.');
   /* NA exige justificativa */
   ALLQ.forEach(q=>(q.p||[]).forEach(p=>{if(p.ty!=='r'&&p.ty!=='c')return;const key=partKey(q,p);
-    p.o.split('|').map(parseOpt).forEach((o,i)=>{if(!o.note||!/^NA/.test(o.lab))return;
+    p.o.split('|').map(parseOpt).forEach((o,i)=>{if(!o.note||!/^Não se aplica/.test(o.lab))return;
       const sel=p.ty==='r'?S[key]===o.lab:(Array.isArray(S[key])&&S[key].includes(o.lab));
-      if(sel&&!has(S[key+'#'+i]))add(q.id,`Em ${q.id} você marcou NA e não escreveu a justificativa breve que o formulário pede.`)})}));
+      if(sel&&!has(S[key+'#'+i]))add(q.id,`Em ${q.id} vocês marcaram “Não se aplica” e não escreveram a justificativa breve que o formulário pede.`)})}));
 
   /* Lista de anexos x respostas */
   const ax=n=>sv('ANX',n+'.env');
-  if(sv('0.2')==='Não temos deck de pitch'&&ax(1)==='Sim')add(['0.2','ANX'],'Em 0.2 você marcou que não tem deck, mas na lista de anexos o deck está como enviado.');
-  if(sv('0.2').startsWith('Anexado')&&ax(1)==='Não')add(['0.2','ANX'],'Em 0.2 você marcou o deck como anexado, mas na lista de anexos ele está como não enviado.');
+  if(sv('0.2')==='Não temos deck de pitch'&&ax(1)==='Sim')add(['0.2','ANX'],'Em 0.2 vocês marcaram que não têm deck, mas na lista de anexos o deck está como enviado.');
+  if(sv('0.2').startsWith('Anexado')&&ax(1)==='Não')add(['0.2','ANX'],'Em 0.2 vocês marcaram o deck como anexado, mas na lista de anexos ele está como não enviado.');
   const n12=e12.startsWith('Nenhuma');
-  if(ax(2)==='Sim'&&n12)add(['1.12','ANX'],'Na lista de anexos a evidência técnica está como enviada, mas em 1.12 você marcou que não há “Sim” na Seção 1.');
-  if(ax(2)==='Não se aplica'&&e12&&!n12)add(['1.12','ANX'],'Em 1.12 você indicou um anexo técnico, mas na lista de anexos a evidência técnica está como “Não se aplica”.');
-  if(ax(3)==='Sim'&&e310.startsWith('Nenhuma'))add(['3.10','ANX'],'Na lista de anexos a evidência comercial está como enviada, mas em 3.10 você marcou que não há documento.');
-  if(ax(3)==='Não se aplica'&&e310&&!e310.startsWith('Nenhuma'))add(['3.10','ANX'],'Em 3.10 você indicou um anexo comercial, mas na lista de anexos ele está como “Não se aplica”.');
-  if(sv('6.9')==='Não temos planilha financeira'&&ax(4)==='Sim')add(['6.9','ANX'],'Em 6.9 você marcou que não tem planilha, mas na lista de anexos ela está como enviada.');
-  if(sv('6.9').startsWith('Anexada')&&ax(4)==='Não temos')add(['6.9','ANX'],'Em 6.9 você marcou a planilha como anexada, mas na lista de anexos está como “Não temos”.');
-  if(ax(5)==='Sim'&&(av('9.8').includes('Nenhum')||av('9.8').includes('Não sabemos')))add(['9.8','ANX'],'Na lista de anexos o cadastro SisGen está como enviado, mas em 9.8 você não marcou uso de patrimônio genético ou conhecimento tradicional.');
-  if(ax(6)==='Sim'&&['Não','Não sabemos','Sim, não iniciadas'].includes(sv('10.6')))add(['10.6','ANX'],'Na lista de anexos a licença está como enviada, mas em 10.6 você marcou que não há licença obtida ou em andamento.');
+  if(ax(2)==='Sim'&&n12)add(['1.12','ANX'],'Na lista de anexos a evidência técnica está como enviada, mas em 1.12 vocês marcaram que não há “Sim” na Seção 1.');
+  if(ax(2)==='Não se aplica'&&e12&&!n12)add(['1.12','ANX'],'Em 1.12 vocês indicaram um anexo técnico, mas na lista de anexos a evidência técnica está como “Não se aplica”.');
+  if(ax(3)==='Sim'&&e310.startsWith('Nenhuma'))add(['3.10','ANX'],'Na lista de anexos a evidência comercial está como enviada, mas em 3.10 vocês marcaram que não há documento.');
+  if(ax(3)==='Não se aplica'&&e310&&!e310.startsWith('Nenhuma'))add(['3.10','ANX'],'Em 3.10 vocês indicaram um anexo comercial, mas na lista de anexos ele está como “Não se aplica”.');
+  if(sv('6.9')==='Não temos planilha financeira'&&ax(4)==='Sim')add(['6.9','ANX'],'Em 6.9 vocês marcaram que não têm planilha, mas na lista de anexos ela está como enviada.');
+  if(sv('6.9').startsWith('Anexada')&&ax(4)==='Não temos')add(['6.9','ANX'],'Em 6.9 vocês marcaram a planilha como anexada, mas na lista de anexos está como “Não temos”.');
+  if(ax(5)==='Sim'&&(av('9.8').includes('Nenhum')||av('9.8').includes('Não sabemos')))add(['9.8','ANX'],'Na lista de anexos o cadastro SisGen está como enviado, mas em 9.8 vocês não marcaram uso de patrimônio genético ou conhecimento tradicional.');
+  if(ax(6)==='Sim'&&['Não','Não sabemos','Sim, não iniciadas'].includes(sv('10.6')))add(['10.6','ANX'],'Na lista de anexos a licença está como enviada, mas em 10.6 vocês marcaram que não há licença obtida ou em andamento.');
   if(ax(6)==='Não se aplica'&&['Sim, obtidas','Sim, em andamento'].includes(sv('10.6')))add(['10.6','ANX'],'Em 10.6 há licença obtida ou em andamento, mas na lista de anexos ela está como “Não se aplica”.');
   return W;
 }
@@ -924,9 +939,9 @@ function refreshWarnings(){
   const by={};W.forEach(w=>w.qs.forEach(q=>(by[q]=by[q]||[]).push(w.m)));
   for(const id in by){const a=document.getElementById('q-'+kid(id));if(!a)continue;
     const d=document.createElement('div');d.className='qw';d.setAttribute('role','note');
-    d.innerHTML='<strong>Confira estas respostas:</strong><ul>'+by[id].map(m=>`<li>${esc(m)}</li>`).join('')+'</ul>';a.appendChild(d)}
+    d.innerHTML='<strong>Confiram estas respostas:</strong><ul>'+by[id].map(m=>`<li>${esc(m)}</li>`).join('')+'</ul>';a.appendChild(d)}
   const L=$('#wlist');
-  if(L)L.innerHTML=W.length?`<h3 class="sub">Pontos para conferir (${W.length})</h3><p>Estas respostas parecem contraditórias. Isso não impede de salvar nem de enviar. Se estiver certo, pode seguir.</p><ul>`+W.map(w=>`<li><a href="#q-${kid(w.qs[0])}">${esc(w.qs[0])}</a>: ${esc(w.m)}</li>`).join('')+'</ul>':'<p class="okline">Nenhuma contradição encontrada nas respostas.</p>';
+  if(L)L.innerHTML=W.length?`<h3 class="sub">Pontos para conferir (${W.length})</h3><p>Estas respostas parecem contraditórias. Isso não impede de salvar nem de enviar. Se estiver certo, podem seguir.</p><ul>`+W.map(w=>`<li><a href="#q-${kid(w.qs[0])}">${esc(w.qs[0])}</a>: ${esc(w.m)}</li>`).join('')+'</ul>':'<p class="okline">Nenhuma contradição encontrada nas respostas.</p>';
   const pt=$('#progtxt');if(pt&&!/a conferir/.test(pt.textContent)&&NW)pt.textContent+=` · ${NW} a conferir`;
 }
 
@@ -944,6 +959,7 @@ function dumpQ(q){
   const ln=(l,v)=>out.push(`  ${l?l+': ':''}${v||'—'}`);
   (q.p||[]).forEach(p=>ln(p.l||'',partVal(q,p)));
   if(q.g)q.g.rows.forEach(([rid,lab])=>ln(rowLabel(`${q.id}|${rid}`,lab),S[`${q.id}|${rid}`]));
+  if(q.mt)for(let i=0;i<3;i++)ln('Meta '+(i+1),S[`${q.id}|m${i}`]);
   if(q.tb){const n=+S[q.id+'|n']||q.tb.n;
     for(let i=0;i<n;i++){const cells=q.tb.cols.map((col,j)=>q.tb.num&&j===0?null:(S[`${q.id}|r${i}c${j}`]?`${col}: ${S[`${q.id}|r${i}c${j}`]}`:null)).filter(Boolean);
       if(cells.length)out.push(`  Linha ${i+1}: ${cells.join(' | ')}`)}}
@@ -962,6 +978,92 @@ function b64(s){const by=new TextEncoder().encode(s);let b='';for(let i=0;i<by.l
 function dumpPaste(){return dumpAll()+'\n\n=== DADOS PARA O PAINEL (não edite o bloco abaixo) ===\n[[DADOS-T4A:'+b64(dumpJson())+':FIM]]\n'}
 function dumpJson(){return JSON.stringify({formulario:'autoavaliacao-tech4amazonia',versao:20,geradoEm:new Date().toISOString(),respostas:S},null,1)}
 function slug(){return ((S['0.0|sol']||'solucao').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'solucao')}
+
+/* ---------- PDF: cópia das respostas para a startup ---------- */
+function pdfSafe(s){
+  return String(s).replace(/[“”„]/g,'"').replace(/[‘’]/g,"'").replace(/[–—]/g,'-').replace(/…/g,'...').replace(/•/g,'*').replace(/₂/g,'2').replace(/≥/g,'>=').replace(/≤/g,'<=').replace(/[☐☑✓]/g,'').replace(/[^\u0000-ÿ]/g,'');
+}
+function qEntries(q){
+  const out=[],ln=(l,v)=>{if(has(v))out.push([l||'',v])};
+  (q.p||[]).forEach(p=>ln(q.id==='DECL'&&p.k==='ok'?'Declaração':p.l,partVal(q,p)));
+  if(q.g)q.g.rows.forEach(([rid,lab])=>ln(rowLabel(`${q.id}|${rid}`,lab),S[`${q.id}|${rid}`]));
+  if(q.mt)for(let i=0;i<3;i++)ln('Meta '+(i+1),S[`${q.id}|m${i}`]);
+  if(q.tb){const n=+S[q.id+'|n']||q.tb.n;
+    for(let i=0;i<n;i++){const cells=q.tb.cols.map((col,j)=>q.tb.num&&j===0?null:(has(S[`${q.id}|r${i}c${j}`])?`${col}: ${S[`${q.id}|r${i}c${j}`]}`:null)).filter(Boolean);
+      if(cells.length)out.push(['Linha '+(i+1),cells.join('; ')])}}
+  if(q.rw)q.rw.forEach(rw=>{if(rw.grp)return;const key=`${q.id}|${rw.id}`;
+    const vs=rw.f.map(p=>{const v=partVal(q,p,rw.id);return has(v)?(p.l?p.l+': ':'')+v:null}).filter(Boolean);
+    if(vs.length)out.push([rowLabel(key,rw.l),vs.join(' | ')])});
+  if(ATT[q.id]&&valStr(q.id+'|anexo','Já enviei este anexo para a pasta do Drive',true))out.push(['Anexo '+ATT[q.id][0],'Marcado como enviado para a pasta do Drive']);
+  return out;
+}
+function montaPdf(){
+  const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210,H=297,mx=18,top=24,bot=20,cw=W-2*mx,acc=[11,110,95],ink=[20,35,31],mut=[90,105,100];
+  let y=top;
+  const need=h=>{if(y+h>H-bot){doc.addPage();y=top}};
+  const para=(txt,x,w,size,style,color,lh)=>{
+    doc.setFont('helvetica',style);doc.setFontSize(size);doc.setTextColor(color[0],color[1],color[2]);
+    doc.splitTextToSize(pdfSafe(txt),w).forEach(l=>{need(lh);doc.text(l,x,y);y+=lh});
+  };
+  const nome=S['0.0|sol']||'(sem nome)';
+  para('Autoavaliação Tech4Amazônia',mx,cw,20,'bold',acc,9);
+  para('Programa de Aceleração Tech4Amazônia | Outubro 2026',mx,cw,11,'normal',mut,5.5);
+  y+=3;doc.setDrawColor(acc[0],acc[1],acc[2]);doc.setLineWidth(0.6);doc.line(mx,y,mx+cw,y);y+=6;
+  const fact=(l,v)=>{if(!has(v))return;para(l,mx,cw,8.5,'normal',mut,3.8);para(v,mx,cw,11,'bold',ink,4.8);y+=1.5};
+  fact('Solução',S['0.0|sol']);fact('Organização responsável',S['0.0|org']);
+  const ct=[S['0.0|cnome'],S['0.0|ccargo'],S['0.0|cemail'],S['0.0|ctel']].filter(has).join(' | ');
+  fact('Pessoa de contato',ct);
+  fact('Gerado em',new Date().toLocaleString('pt-BR',{dateStyle:'long',timeStyle:'short'}));
+  computeAns();
+  const tot=ALLQ.filter(q=>!q.nb||q.id==='0.0').length,done=ALLQ.filter(q=>(!q.nb||q.id==='0.0')&&ANS.has(q.id)).length;
+  fact('Perguntas respondidas',`${done} de ${tot}`);
+  y+=2;para('Esta é uma cópia das respostas para a startup guardar. O envio das respostas ao programa é feito pelo arquivo de respostas (.json), por e-mail.',mx,cw,9,'italic',mut,4);
+  SECTIONS.forEach(s=>{
+    const items=s.qs.map(q=>[q,qEntries(q)]).filter(x=>x[1].length);
+    if(!items.length)return;
+    need(28);y+=6;
+    para(s.tagText===s.title?s.title:(s.tagText||('Seção '+s.k))+'. '+s.title,mx,cw,13,'bold',acc,6);
+    y-=1;doc.setDrawColor(acc[0],acc[1],acc[2]);doc.setLineWidth(0.3);doc.line(mx,y,mx+cw,y);y+=4.5;
+    items.forEach(([q,es])=>{
+      need(20);
+      para((q.nb?'':q.id+'  ')+q.t,mx,cw,10,'bold',ink,4.6);y+=0.8;
+      es.forEach(([l,v])=>{
+        if(l)para(l,mx+4,cw-4,8.5,'normal',mut,3.8);
+        para(v,mx+4,cw-4,9.5,'normal',[20,20,20],4.3);y+=0.9;
+      });
+      y+=3;
+    });
+  });
+  const sem=ALLQ.filter(q=>(!q.nb||q.id==='0.0')&&!ANS.has(q.id)).map(q=>q.id);
+  if(sem.length){need(24);y+=4;para('Perguntas sem resposta',mx,cw,13,'bold',acc,6);y+=1;para(sem.join(', '),mx,cw,9.5,'normal',[20,20,20],4.3)}
+  let W2=[];try{W2=checks()}catch(e){}
+  if(W2.length){need(24);y+=6;para('Pontos a conferir',mx,cw,13,'bold',acc,6);y+=1;
+    W2.forEach(w=>{para('- '+w.m,mx,cw,9.5,'normal',[20,20,20],4.3);y+=0.8})}
+  const n=doc.getNumberOfPages();
+  for(let i=1;i<=n;i++){
+    doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(mut[0],mut[1],mut[2]);
+    doc.text('Autoavaliação Tech4Amazônia',mx,12);
+    doc.text(pdfSafe(nome).slice(0,60),W-mx,12,{align:'right'});
+    doc.setDrawColor(210,221,216);doc.setLineWidth(0.2);doc.line(mx,14,W-mx,14);
+    doc.text(`Página ${i} de ${n}`,W/2,H-10,{align:'center'});
+  }
+  doc.setProperties({title:'Autoavaliação Tech4Amazônia - '+pdfSafe(nome),subject:'Cópia das respostas da startup',creator:'Formulário de Autoavaliação Tech4Amazônia'});
+  return doc;
+}
+async function gerarPdf(){
+  if(!(window.jspdf&&window.jspdf.jsPDF)){status('Não foi possível carregar o gerador de PDF. Confira a conexão com a internet e recarregue a página.','err');return}
+  let doc;try{doc=montaPdf()}catch(e){console.error(e);status('Não foi possível montar o PDF.','err');return}
+  const name=`autoavaliacao-tech4amazonia-${slug()}.pdf`,buf=doc.output('arraybuffer');
+  if(!(window.claude&&window.claude.use)){baixarBlob(name,buf,'application/pdf');status('PDF salvo na pasta de downloads do navegador. Guardem esta cópia.','ok');return}
+  try{
+    const d=await window.claude.use('downloads');if(!d)throw {code:'unavailable'};
+    await d.save({filename:name,data:buf});status('PDF pronto.','ok');
+  }catch(e){
+    if(e&&e.code==='declined'){status('Download cancelado.');return}
+    status('Neste ambiente não é possível baixar o PDF. Abram o link oficial do formulário para gerar o PDF.','err');
+  }
+}
 function missing(){
   const m=[];
   if(!has(S['0.0|sol']))m.push('o nome da solução (Seção 0)');
@@ -984,12 +1086,12 @@ function baixarBlob(name,data,type){
 async function saveFile(name,data){
   if(!(window.claude&&window.claude.use)){
     baixarBlob(name,data,name.endsWith('.json')?'application/json':'text/plain;charset=utf-8');
-    status('Arquivo salvo na pasta de downloads do navegador. Envie-o para '+(CONFIG.contato||'a equipe do programa')+'.','ok');return;
+    status('Arquivo salvo na pasta de downloads do navegador. Enviem-no para '+(CONFIG.contato||'a equipe do programa')+'.','ok');return;
   }
   try{
     const d=await (window.claude&&window.claude.use?window.claude.use('downloads'):null);
     if(!d)throw {code:'unavailable'};
-    await d.save({filename:name,data});status('Arquivo pronto. Envie-o para a equipe do programa (veja as instruções acima).','ok');
+    await d.save({filename:name,data});status('Arquivo pronto. Enviem-no para a equipe do programa (vejam as instruções acima).','ok');
   }catch(e){
     if(e&&e.code==='declined'){status('Download cancelado.');return}
     showFallback();
@@ -1002,13 +1104,13 @@ function showFallback(){
 }
 async function copyAll(){
   const txt=dumpPaste();
-  try{await navigator.clipboard.writeText(txt);status('Respostas copiadas. Cole no corpo de um e-mail para '+(CONFIG.contato||'a equipe do programa')+'.','ok')}
+  try{await navigator.clipboard.writeText(txt);status('Respostas copiadas. Colem no corpo de um e-mail para '+(CONFIG.contato||'a equipe do programa')+'.','ok')}
   catch(e){showFallback()}
 }
 $('#mCopy').addEventListener('click',async()=>{
   const t=$('#mtext');
-  try{await navigator.clipboard.writeText(t.value);$('#mstat').textContent='Copiado. Agora cole no e-mail.'}
-  catch(e){t.focus();t.select();$('#mstat').textContent='Não foi possível copiar sozinho. O texto está selecionado: use Ctrl+C.'}
+  try{await navigator.clipboard.writeText(t.value);$('#mstat').textContent='Copiado. Agora colem no e-mail.'}
+  catch(e){t.focus();t.select();$('#mstat').textContent='Não foi possível copiar sozinho. O texto está selecionado: usem Ctrl+C.'}
 });
 $('#mClose').addEventListener('click',()=>{$('#modal').hidden=true});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('#modal').hidden=true;$('#confirm').hidden=true;pendente=null}});
@@ -1022,10 +1124,10 @@ async function initSend(){
   if(canSend){
     ['#bSend','#bSend2'].forEach(s=>{$(s).hidden=false;$(s).classList.add('pri')});
     $('#bJson2').classList.remove('pri');
-    how.innerHTML='Clique em <strong>Enviar respostas</strong>. A equipe do programa recebe tudo direto. Se preferir, também é possível baixar uma cópia.';
+    how.innerHTML='Cliquem em <strong>Enviar respostas</strong>. A equipe do programa recebe tudo direto. Se preferir, também é possível baixar uma cópia.';
   }else{
     $('#bJson').classList.add('pri');
-    how.innerHTML=`Clique em <strong>Salvar respostas</strong> (no topo da página ou aqui) e envie o arquivo .json para ${esc(CONFIG.contato||'a equipe do programa (contato informado no kickoff)')}, junto com os anexos, na pasta da PoC no Google Drive. Se o download não funcionar, abre uma janela com o texto das respostas: clique em <strong>Copiar tudo</strong> e cole no corpo de um e-mail. Os anexos vão à parte, para a pasta do Drive.`;
+    how.innerHTML=`Cliquem em <strong>Salvar respostas</strong> (no topo da página ou aqui) e enviem o arquivo .json para ${esc(CONFIG.contato||'a equipe do programa (contato informado no kickoff)')}, junto com os anexos, na pasta da startup no Google Drive. Se o download não funcionar, abre uma janela com o texto das respostas: cliquem em <strong>Copiar tudo</strong> e colem no corpo de um e-mail. Os anexos vão à parte, para a pasta do Drive.`;
   }
 }
 async function enviar(){
@@ -1036,9 +1138,9 @@ async function enviar(){
     const db=await window.claude.use('db'),user=await window.claude.use('user'),uid=await user.id();
     const id='e'+Date.now();
     await db.doc('respostas/'+uid).collection('envios').doc(id).set({enviadoEm:new Date().toISOString(),solucao:S['0.0|sol']||'',organizacao:S['0.0|org']||'',texto:dumpAll(),json:JSON.stringify(S)});
-    status('Respostas enviadas. Obrigado! Você pode continuar editando e enviar de novo se precisar corrigir algo.','ok');
+    status('Respostas enviadas. Obrigado! Vocês podem continuar editando e enviar de novo se precisar corrigir algo.','ok');
   }catch(e){
-    status('O envio direto não está liberado para o seu acesso. Clique em “Salvar respostas” e envie o arquivo por e-mail. Suas respostas continuam salvas aqui.','err');
+    status('O envio direto não está liberado para este acesso. Cliquem em “Salvar respostas” e enviem o arquivo por e-mail. Suas respostas continuam salvas aqui.','err');
     ['#bSend','#bSend2'].forEach(s=>{$(s).hidden=true});['#bJson','#bJson2'].forEach(s=>$(s).classList.add('pri'));
   }
   bs.forEach(x=>x.disabled=false);
@@ -1050,11 +1152,12 @@ document.addEventListener('click',e=>{
   else if(id==='bJson')confirmaSalvar(()=>saveFile(`autoavaliacao-tech4amazonia-${slug()}.json`,dumpJson()));
   else if(id==='bTxt')confirmaSalvar(()=>saveFile(`autoavaliacao-tech4amazonia-${slug()}.txt`,dumpAll()));
   else if(id==='bCopy')confirmaSalvar(copyAll);
+  else if(id==='bPdf')gerarPdf();
   else if(id==='cGo'){$('#confirm').hidden=true;const a=pendente;pendente=null;if(a)a()}
   else if(id==='cBack'){$('#confirm').hidden=true;pendente=null;const alvo=!has(S['0.0|sol'])?'q-f_0_0':'q-f_DECL';const el=document.getElementById(alvo);if(el)el.scrollIntoView({block:'center'})}
   else if(id==='bClear'){
     const el=e.target;if(!el.dataset.t)el.dataset.t=el.textContent;
-    if(!clr){clr=true;el.textContent='Clique de novo para apagar tudo';setTimeout(()=>{clr=false;el.textContent=el.dataset.t},4000)}
+    if(!clr){clr=true;el.textContent='Cliquem de novo para apagar tudo';setTimeout(()=>{clr=false;el.textContent=el.dataset.t},4000)}
     else{clr=false;el.textContent=el.dataset.t;S={};try{localStorage.removeItem(LSK)}catch(x){}build();refreshProgress();initSend();spy();toast('Respostas apagadas.')}
   }
 });
@@ -1089,7 +1192,7 @@ $('#fileIn').addEventListener('change',async e=>{
     computeAns();
     if(ANS.size){pendingImp=clean;impMsg('Já há respostas neste navegador. Carregar o arquivo substitui todas elas. <button type="button" class="btn sm" id="bReplace">Substituir</button> <button type="button" class="btn sm" id="bKeep">Cancelar</button>');}
     else applyImport(clean);
-  }catch(x){impMsg('Este arquivo não é um arquivo de respostas deste formulário. Use o arquivo .json salvo pelo botão “Salvar respostas”.','err')}
+  }catch(x){impMsg('Este arquivo não é um arquivo de respostas deste formulário. Usem o arquivo .json salvo pelo botão “Salvar respostas”.','err')}
 });
 
 /* ---------- navegação ---------- */
