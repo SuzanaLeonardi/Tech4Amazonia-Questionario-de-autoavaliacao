@@ -91,8 +91,6 @@ input[type=text]:focus,textarea:focus{border-color:var(--accent)}
 .opt.on .onote{display:block}
 .stack .opt.on{flex-wrap:wrap}
 .opts.full .opt:not(.on) .ob{opacity:.45}
-.opts[data-multi="1"]:not(.ckbox) .ob::before{content:'\2610\00a0'}
-.opts[data-multi="1"]:not(.ckbox) .opt.on .ob::before{content:'\2611\00a0'}
 .opts.ckbox .ob{position:relative;padding:12px 14px 12px 46px;border:2px solid var(--accent);border-radius:8px;background:var(--surface);font-size:.95rem}
 .opts.ckbox .ob::before{content:'';position:absolute;left:13px;top:50%;width:20px;height:20px;margin-top:-10px;border:2px solid var(--accent);border-radius:4px;background:var(--bg)}
 .opts.ckbox .opt.on .ob{background:var(--accent-soft);color:var(--ink)}
@@ -253,6 +251,7 @@ const LSK='t4a-autoavaliacao-v20';
 const YN='Sim|Não';
 const r=(k,l,o,w)=>({ty:'r',k,l,o,w});
 const c=(k,l,o,max,box)=>({ty:'c',k,l,o,max,box});
+const cp=(k,l,o,max)=>({ty:'c',k,l,o,max,plain:true}); // marcação múltipla sem o quadradinho
 const t=(k,l,ph,w)=>({ty:'t',k,l,ph,w});
 const a=(k,l,ph)=>({ty:'a',k,l,ph});
 const dl=(onde)=>[t('data','Se sim: data (mês e ano)','mm/aaaa','h'),t('local',onde,'','h')];
@@ -262,7 +261,7 @@ const OUT='Outro~Qual?';
 const SECTIONS=[
 {k:'',title:'Antes de começar',items:[
  {i:'Este formulário ajuda a sua equipe a organizar as informações sobre a solução antes do diagnóstico. As respostas são a base do diagnóstico e da decisão sobre a entrada na aceleração, no Gate 1. Respostas “não” ou “ainda não” são normais neste estágio e nos ajudam a identificar onde o programa pode apoiar mais. Algumas respostas serão comparadas com as evidências e com a avaliação dos especialistas; diferenças são discutidas no workshop.'},
- {i:'**Uso dos dados.** As informações e os anexos serão usados apenas para o diagnóstico, o plano de aceleração e a reavaliação do programa. A pasta de cada solução tem acesso restrito aos avaliadores e à equipe do programa. A planilha financeira e as perguntas sobre custos, preços e clientes em negociação (2.8, 2.9, 4.3, 6.9 e Tabela B) ficam numa subpasta visível só para os especialistas e para a facilitação do programa. Se a solução não seguir para a execução, os dados serão eliminados em até 90 dias após o Gate 1.'},
+ {i:'**Uso dos dados.** As informações e os anexos serão usados apenas para o diagnóstico, o plano de aceleração e a reavaliação do programa. A pasta de cada solução tem acesso restrito aos avaliadores e à equipe do programa. A planilha financeira e as perguntas sobre custos, preços e clientes em negociação (2.8, 2.9, 4.3, 4.9, 6.9 e Tabela B) ficam numa subpasta visível só para os especialistas e para a facilitação do programa. Se a solução não seguir para a execução, os dados serão eliminados em até 90 dias após o Gate 1.'},
  {sub:'Como preencher'},
  {i:'Este formulário é apresentado e explicado no kickoff com a equipe do programa. Vocês têm 2 semanas, a partir do kickoff, para preenchê-lo e reunir os anexos.'},
  {i:'Respondam marcando uma opção em cada pergunta. Quando houver campo numérico, de texto ou lista, sejam breves. Para desfazer uma marcação, cliquem de novo na opção.'},
@@ -283,7 +282,7 @@ const SECTIONS=[
   ['4','Planilha financeira: histórico, se houver faturamento, e projeção de 3 anos','Obrigatório, se existir','6.9'],
   ['5','Número do cadastro no SisGen (caso exista)','Só se usar patrimônio genético ou conhecimento tradicional','9.8'],
   ['6','Licença ambiental ou protocolo','Só se a solução precisar de licença','10.6']]}},
- {i:'**Os anexos não são enviados por esta página.** Enviem os arquivos para a pasta da startup no Google Drive, indicada no kickoff. Nomeiem cada arquivo com o número do anexo e da pergunta. Exemplo: 2_1.3_relatorio_teste_campo.pdf. Nas perguntas que pedem anexo, um quadro tracejado mostra o nome sugerido do arquivo e uma caixa para marcar que ele já foi enviado.'},
+ {i:'**Os anexos não são enviados por esta página.** Enviem os arquivos para a pasta da startup no Google Drive. Cada startup recebe por e-mail o link da sua pasta. Nomeiem cada arquivo com o número do anexo e da pergunta. Exemplo: 2_1.3_relatorio_teste_campo.pdf. Nas perguntas que pedem anexo, um quadro tracejado mostra o nome sugerido do arquivo e uma caixa para marcar que ele já foi enviado.'},
  {dyn:'prazo'}
 ]},
 
@@ -351,7 +350,8 @@ const SECTIONS=[
   r('quem','Quem produz hoje?','A própria equipe|Laboratório ou universidade|Fornecedor terceirizado|Combinação'),
   c('lim','O que mais limita a produção? (marquem até 2)','Componentes importados ou com prazo longo|Mão de obra|Equipamentos|Espaço|Capital de giro|'+OUT,2)]}},
  {q:{id:'2.8',t:'Quanto custa hoje produzir uma unidade (materiais, montagem, mão de obra e testes, sem logística e instalação)?',p:[t('v','R$ por unidade','','s'),r('st','','Ainda não calculado|Prefiro informar no workshop|'+NA)],n:['Sugerimos levar no workshop: a planilha de custo por unidade com as premissas.']}},
- {q:{id:'2.9',t:'Quanto a equipe estima que custaria produzir uma unidade em lote maior (mais escala)?',p:[t('v','R$ por unidade','','s'),t('lote','Em um lote de (unidades)','','s'),r('st','','Ainda não estimado|Prefiro informar no workshop|'+NA)],n:['Sugerimos levar no workshop: os orçamentos ou o cálculo com as premissas.']}}
+ {q:{id:'2.9',t:'Quanto a equipe estima que custaria produzir uma unidade em lote maior (mais escala)?',p:[t('v','R$ por unidade','','s'),t('lote','Em um lote de (unidades)','','s'),r('st','','Ainda não estimado|Prefiro informar no workshop|'+NA)],n:['Sugerimos levar no workshop: os orçamentos ou o cálculo com as premissas.']}},
+ {q:{id:'2.10',t:'O valor da solução depende de o produto processado atender a padrões sanitários, de qualidade ou de exportação (por exemplo: limites de micotoxinas, registro sanitário do estabelecimento, especificações do comprador)?',p:[r('','','Sim, e temos laudos de laboratório do produto processado pela solução|Sim, mas ainda sem laudos|Não|Não sabemos'),a('quais','Se sim, quais padrões e quais resultados')],n:['Sugerimos levar no workshop: laudos do produto antes e depois do processamento, com data e laboratório.']}}
 ]},
 
 {k:'3',title:'Compradores e como a solução resolve as suas dores',items:[
@@ -374,14 +374,17 @@ const SECTIONS=[
 ]},
 
 {k:'4',title:'Modelo comercial e custos',items:[
- {q:{id:'4.1',t:'Como a solução vai gerar receita? (marquem o principal)',p:[r('','','Venda de equipamento|Equipamento com contrato de manutenção|Assinatura ou serviço recorrente|Venda de dados ou relatórios|Licença da tecnologia|Serviço por projeto|Ainda não definido|'+OUT)]}},
+ {q:{id:'4.1',t:'Como a solução vai gerar receita? (marquem até 3, as principais)',p:[cp('','','Venda de equipamento|Equipamento com contrato de manutenção|Assinatura ou serviço recorrente|Venda de dados ou relatórios|Licença da tecnologia|Serviço por projeto|Operação da unidade e venda do produto beneficiado|Cobrança por volume processado (beneficiamento como serviço)|Divisão do resultado com o produtor ou a cooperativa|Ainda não definido|'+OUT,3)]}},
  {q:{id:'4.2',t:'Como os potenciais clientes reagiram ao modelo de receita?',p:[r('','','2 ou mais aceitaram|1 aceitou|Houve objeções|Ainda não apresentamos')]}},
  {q:{id:'4.3',t:'Existe um preço ou faixa de preço definida?',p:[r('','',YN),t('preco','Se sim: preço ou faixa (R$)','','h'),t('por','Por (unidade, mês, projeto)','','h')]}},
  {q:{id:'4.4',t:'Esse preço já foi apresentado a potenciais clientes?',p:[r('','','Sim, e 2 ou mais aceitaram ou confirmaram|Sim, e 1 aceitou ou confirmou|Sim, mas foi recusado ou questionado|Não foi apresentado')]}},
  {q:{id:'4.5',t:'Além do custo de produção informado em 2.8, a equipe sabe quanto custa levar e instalar uma unidade ou entregar um projeto (transporte, instalação, manutenção inicial)?',p:[r('','','Sim, calculado com dados reais do piloto|Sim, estimado|Não')],n:['Sugerimos levar no workshop: a planilha de custo de entrega com as premissas.']}},
  {q:{id:'4.6',t:'Com o preço e o custo atuais, a margem é positiva?',p:[r('','','Sim|Não|Não sabemos')],n:['O cálculo de margem aparece na planilha financeira (6.9), se existir.']}},
  {q:{id:'4.7',t:'Qual é o menor contrato que vale a pena fechar, considerando o esforço de venda e de entrega?',p:[r('','','Calculado~Valor em R$|Não calculado')]}},
- {q:{id:'4.8',t:'A solução pode ser entregue a novos clientes sem precisar ser redesenhada para cada um?',p:[r('','','Sim|Com pequenas adaptações|Não, cada cliente exige desenvolvimento próprio|Depende~Do quê?')]}}
+ {q:{id:'4.8',t:'A solução pode ser entregue a novos clientes sem precisar ser redesenhada para cada um?',p:[r('','','Sim|Com pequenas adaptações|Não, cada cliente exige desenvolvimento próprio|Depende~Do quê?')]}},
+ {q:{id:'4.9',t:'Onde a solução está na cadeia do produto? Preencham com a melhor informação disponível, do produtor ao comprador final. Estimativas são bem-vindas; indiquem a fonte.',p:[cp('na','','Não se aplica: a solução não atua numa cadeia de produto~Justificativa breve')],tb:{cols:['Elo da cadeia','Quem é (tipo de organização)','Preço praticado (R$ por kg ou unidade)','Fonte'],rl:['Produtor ou extrativista','Cooperativa ou primeiro comprador','Beneficiador ou indústria','Distribuidor, atacadista ou exportador','Comprador final (varejo, indústria ou importador)'],w:[3,2,2]},pa:[cp('hoje','Em quais elos a solução atua hoje? (marquem todos que se aplicam)','Produtor ou extrativista|Cooperativa ou primeiro comprador|Beneficiador ou indústria|Distribuidor, atacadista ou exportador|Comprador final (varejo, indústria ou importador)|Outro~Qual?'),cp('futuro','Em quais elos a equipe quer atuar daqui a 3 anos? (marquem todos que se aplicam)','Produtor ou extrativista|Cooperativa ou primeiro comprador|Beneficiador ou indústria|Distribuidor, atacadista ou exportador|Comprador final (varejo, indústria ou importador)|Outro~Qual?')]}},
+ {q:{id:'4.10',t:'Na visão do cliente, em quanto tempo o ganho gerado pela solução (preço maior, perda menor ou custo menor) paga o que ele investe ou paga por ela?',p:[cp('na','','Não se aplica: a solução não está ligada a safra nem a matéria-prima~Justificativa breve'),r('','','Em até 1 safra|Entre 1 e 2 safras|Em mais de 2 safras|Ainda não calculado'),cp('pag','Como o cliente pagaria? (marquem todas que se aplicam)','À vista|Parcelado pela própria startup|Financiamento ou linha de crédito~Qual?|Aluguel ou comodato|Pagamento por volume processado|Ainda não sabemos')],n:['Sugerimos levar no workshop: o cálculo do ganho do cliente, com as premissas.']}},
+ {q:{id:'4.11',t:'Em quantos meses por ano a solução tem matéria-prima para processar, na região onde vai operar?',p:[cp('na','','Não se aplica: a solução não processa matéria-prima~Justificativa breve'),r('','','Até 3|De 4 a 6|De 7 a 9|De 10 a 12|Não sabemos'),t('safra','Meses de safra e de entressafra da principal matéria-prima','Ex.: safra de dezembro a março; entressafra de abril a novembro'),r('outro','Fora da safra, a solução pode processar outro produto?','Sim, já testado|Sim, ainda não testado|Não')]}}
 ]},
 
 {k:'5',title:'Mercado, parceiros e canal',items:[
@@ -433,7 +436,8 @@ const SECTIONS=[
  {q:{id:'7.6',t:'Para as competências e os recursos marcados como “Falta” nas perguntas 7.4 e 7.5, existe plano de contratação ou de parcerias?',p:[r('','','Sim, com prazos|Sim, sem prazos|Não|Não se aplica. Nenhum item marcado como “Falta”'),t('lista','Se sim, listem brevemente funções ou parceiros e prazos')]}},
  {q:{id:'7.7',t:'Como está a governança da equipe? Marquem uma opção por linha.',
   g:{paAfter:'a',cols:['Sim, por escrito','Sim, informalmente ou em negociação','Não','Não se aplica'],rows:[['a','a) Está definido quem decide o quê dentro da equipe'],['b','b) Existe acordo entre os sócios ou entre as instituições envolvidas (acordo de sócios, acordo de cooperação)']]},
-  pa:[t('na','Justificativa, se marcaram “Não se aplica”')]}}
+  pa:[t('na','Justificativa, se marcaram “Não se aplica”')]}},
+ {q:{id:'7.8',t:'As pessoas-chave da equipe têm outros negócios, empregos ou projetos em andamento além desta solução?',p:[r('','','Não|Sim, com dedicação menor do que a dedicada a esta solução|Sim, com dedicação igual ou maior'),a('ativ','Se sim, indiquem a função da pessoa e o tipo de atividade, sem nomes')]}}
 ]},
 
 {k:'8',title:'Impacto positivo',items:[
@@ -454,12 +458,14 @@ const SECTIONS=[
     {grp:'Soluções baseadas na natureza e bioeconomia'},
     row('e','e) Área de floresta conservada ou manejada',HA,HA,'mapa ou coordenadas da área'),
     row('f','f) Biodiversidade','Monitorada com dados|Apenas observada','Com plano de monitoramento|Sem plano','relatório de monitoramento','Não medido','Não estimado'),
+    row('g','g) Perda de matéria-prima evitada (% do volume)','0|Até 10%|10 a 30%|Mais de 30%','0|Até 10%|10 a 30%|Mais de 30%','registros de pesagem antes e depois'),
+    row('h','h) Variação do preço pago ao produtor ou extrativista','Redução|Sem variação|Até 10%|10 a 30%|Mais de 30%','Redução|Sem variação|Até 10%|10 a 30%|Mais de 30%','registros de compra (podem usar códigos)'),
     {grp:'Descarbonização'},
-    row('g','g) Emissões evitadas, por ano',CO,CO,'memória de cálculo (em 8.3)'),
+    row('i','i) Emissões evitadas, por ano',CO,CO,'memória de cálculo (em 8.3)'),
     {grp:'Outros benefícios ambientais'},
-    row('h','h) Pessoas com melhor acesso ou qualidade da água',PP,PP,'laudos de qualidade da água antes e depois'),
-    row('i','i) Resíduos evitados ou reaproveitados, por ano','0|Até 10 t|10 a 100 t|100 a 1.000 t|Mais de 1.000 t','0|Até 10 t|10 a 100 t|100 a 1.000 t|Mais de 1.000 t','registros de pesagem ou de destinação'),
-    row('j','j) Energia economizada ou gerada de fonte renovável, por ano','0|Até 10 MWh|10 a 100 MWh|100 a 1.000 MWh|Mais de 1.000 MWh','0|Até 10 MWh|10 a 100 MWh|100 a 1.000 MWh|Mais de 1.000 MWh','medições de consumo antes e depois')];
+    row('j','j) Pessoas com melhor acesso ou qualidade da água',PP,PP,'laudos de qualidade da água antes e depois'),
+    row('k','k) Resíduos evitados ou reaproveitados, por ano','0|Até 10 t|10 a 100 t|100 a 1.000 t|Mais de 1.000 t','0|Até 10 t|10 a 100 t|100 a 1.000 t|Mais de 1.000 t','registros de pesagem ou de destinação'),
+    row('l','l) Energia economizada ou gerada de fonte renovável, por ano','0|Até 10 MWh|10 a 100 MWh|100 a 1.000 MWh|Mais de 1.000 MWh','0|Até 10 MWh|10 a 100 MWh|100 a 1.000 MWh|Mais de 1.000 MWh','medições de consumo antes e depois')];
   })()}},
  {q:{id:'8.3',t:'Como os números da tabela 8.2 foram obtidos? (marquem a opção que vale para a maior parte deles)',p:[r('','','Medidos no piloto|Estimados com premissas documentadas|Estimados sem método definido|Não temos números')],n:['Sugerimos levar no workshop: a memória de cálculo com as premissas, inclusive das estimativas para 12 meses. Um parágrafo por indicador basta. Exemplo: “Cada unidade instalada emprega 5 pessoas da região. Com 20 unidades vendidas em 12 meses, são 100 empregos diretos.” Se houver análise de impacto social ou ambiental, também pode ser levada ou enviada.']}},
  {sub:'Trabalho e renda na região'},
@@ -574,13 +580,13 @@ const parseOpt=s=>{const i=s.indexOf('~');return i<0?{lab:s,note:false,ph:''}:{l
 const has=v=>Array.isArray(v)?v.length>0:(v!=null&&String(v).trim()!=='');
 
 /* ---------- montagem do HTML ---------- */
-function opts(key,list,multi,max,box){
+function opts(key,list,multi,max,box,plain){
   const os=list.split('|').map(parseOpt);
   const cur=S[key];
   const isOn=o=>multi?(Array.isArray(cur)&&cur.includes(o.lab)):cur===o.lab;
   const stack=os.some(o=>o.lab.length>44);
   const n=multi&&max&&Array.isArray(cur)&&cur.length>=max;
-  return `<div class="opts ${stack||box?'stack':''}${box?' ckbox':''}${n?' full':''}" data-key="${esc(key)}" data-multi="${multi?1:0}"${max?` data-max="${max}"`:''} role="${multi?'group':'radiogroup'}">`+os.map((o,i)=>{
+  return `<div class="opts ${stack||box?'stack':''}${box?' ckbox':''}${plain?' plain':''}${n?' full':''}" data-key="${esc(key)}" data-multi="${multi?1:0}"${max?` data-max="${max}"`:''} role="${multi?'group':'radiogroup'}">`+os.map((o,i)=>{
     const id=kid(key)+'_'+i,on=isOn(o);
     return `<label class="opt${on?' on':''}"><input type="${multi?'checkbox':'radio'}" name="${kid(key)}" id="${id}" value="${esc(o.lab)}"${on?' checked':''}><span class="ob">${esc(o.lab)}</span>${o.note?`<input type="text" class="onote" id="${id}_n" data-key="${esc(key)}#${i}" placeholder="${esc(o.ph||'Especifique')}" aria-label="${esc(o.lab)}" value="${esc(S[key+'#'+i]||'')}">`:''}</label>`;
   }).join('')+'</div>';
@@ -591,7 +597,7 @@ function partHTML(q,p,rid){
   const cls='part'+(p.w==='h'?' h':'')+(p.w==='s'?' s':'')+(p.w==='m'?' m':'');
   let body='';
   if(p.ty==='r')body=(p.l?`<div class="pl">${esc(p.l)}</div>`:'')+opts(key,p.o,false);
-  else if(p.ty==='c')body=(p.l?`<div class="pl">${esc(p.l)}</div>`:'')+opts(key,p.o,true,p.max,p.box)+(p.max?`<div class="mx">Marquem até ${p.max}.</div>`:'');
+  else if(p.ty==='c')body=(p.l?`<div class="pl">${esc(p.l)}</div>`:'')+opts(key,p.o,true,p.max,p.box,p.plain)+(p.max?`<div class="mx">Marquem até ${p.max}.</div>`:'');
   else if(p.ty==='t')body=(p.l?`<label class="pl" for="${id}">${esc(p.l)}</label>`:'')+`<input type="text" id="${id}" data-key="${esc(key)}" placeholder="${esc(p.ph||'')}" value="${esc(S[key]||'')}">`;
   else body=(p.l?`<label class="pl" for="${id}">${esc(p.l)}</label>`:'')+`<textarea id="${id}" data-key="${esc(key)}" placeholder="${esc(p.ph||'')}">${esc(S[key]||'')}</textarea>`;
   return `<div class="${cls}">${body}</div>`;
@@ -608,16 +614,16 @@ function gridHTML(q){
   }).join('')+'</div>';
 }
 function tbHTML(q){
-  const tb=q.tb,n=+S[q.id+'|n']||tb.n;
+  const tb=q.tb,n=tb.rl?tb.rl.length:(+S[q.id+'|n']||tb.n),lead=tb.num||tb.rl,first=tb.rl?24:8;
   let cg='';
-  if(tb.w){const tot=tb.w.reduce((a,b)=>a+b,0);let k=0;cg='<colgroup>'+tb.cols.map((c,j)=>tb.num&&j===0?'<col style="width:8%">':`<col style="width:${(92*tb.w[k++]/tot).toFixed(2)}%">`).join('')+'</colgroup>'}
+  if(tb.w){const tot=tb.w.reduce((a,b)=>a+b,0);let k=0;cg='<colgroup>'+tb.cols.map((c,j)=>lead&&j===0?`<col style="width:${first}%">`:`<col style="width:${((100-(lead?first:0))*tb.w[k++]/tot).toFixed(2)}%">`).join('')+'</colgroup>'}
   let h=`<div class="tw"><table class="data${tb.w?' fx':''}">${cg}<thead><tr>${tb.cols.map(x=>`<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>`;
   for(let i=0;i<n;i++){
     h+='<tr>';
     tb.cols.forEach((col,j)=>{
-      if(tb.num&&j===0){h+=`<th scope="row" class="n">${i+1}</th>`;return}
+      if(tb.num&&j===0){h+=`<th scope="row" class="n">${i+1}</th>`;return}if(tb.rl&&j===0){h+=`<th scope="row">${esc(tb.rl[i])}</th>`;return}
       const key=`${q.id}|r${i}c${j}`,id=kid(key);
-      h+=`<td>${tb.ta?`<textarea id="${id}" data-key="${key}" aria-label="${esc(col+' '+(i+1))}">${esc(S[key]||'')}</textarea>`:`<input type="text" id="${id}" data-key="${key}" aria-label="${esc(col+' '+(i+1))}" value="${esc(S[key]||'')}">`}</td>`;
+      h+=`<td>${tb.ta?`<textarea id="${id}" data-key="${key}" aria-label="${esc(col+' '+(tb.rl?tb.rl[i]:i+1))}">${esc(S[key]||'')}</textarea>`:`<input type="text" id="${id}" data-key="${key}" aria-label="${esc(col+' '+(tb.rl?tb.rl[i]:i+1))}" value="${esc(S[key]||'')}">`}</td>`;
     });
     h+='</tr>';
   }
@@ -641,7 +647,7 @@ function hintHTML(n){
 function attHTML(q){
   const a=ATT[q.id];if(!a)return '';
   const pre=a[1].split('_').slice(0,2).join('_')+'_';
-  return `<div class="att"><div class="at">Anexo ${a[0]}: ${esc(a[2])}</div><p>Esta página não recebe arquivos. Enviem o documento para a <strong>pasta da startup no Google Drive</strong>, indicada no kickoff${CONFIG.drive?` (<a href="${esc(CONFIG.drive)}" target="_blank" rel="noopener">abrir a pasta</a>)`:''}. O nome do arquivo deve começar por <code>${esc(pre)}</code>. Exemplo: <code>${esc(a[1])}</code><button type="button" class="btn sm" data-copy="${esc(a[1])}">Copiar nome</button></p>${opts(q.id+'|anexo','Já enviei este anexo para a pasta do Drive',true)}</div>`;
+  return `<div class="att"><div class="at">Anexo ${a[0]}: ${esc(a[2])}</div><p>Esta página não recebe arquivos. Enviem o documento para a <strong>pasta da startup no Google Drive</strong>, cujo link vocês receberam por e-mail${CONFIG.drive?` (<a href="${esc(CONFIG.drive)}" target="_blank" rel="noopener">abrir a pasta</a>)`:''}. O nome do arquivo deve começar por <code>${esc(pre)}</code>. Exemplo: <code>${esc(a[1])}</code><button type="button" class="btn sm" data-copy="${esc(a[1])}">Copiar nome</button></p>${opts(q.id+'|anexo','Já enviei este anexo para a pasta do Drive',true)}</div>`;
 }
 function metasHTML(q){
   let h='<div class="pl">Descrevam as metas</div><div class="tw"><table class="data"><thead><tr><th class="n">Meta</th><th>Qual é a meta?</th></tr></thead><tbody>';
@@ -774,8 +780,8 @@ document.addEventListener('input',e=>{
 
 
 /* ---------- consistência das respostas ---------- */
-const EXCL={'5.2|':['Nada específico por enquanto'],'5.4|':['Ainda não definido'],'5.6|':['Ainda não avaliamos'],'6.4|':['Nenhuma','Não sabemos'],'8.1|':['Nenhum'],'8.5|':['Não se aplica'],'8.8|':['Nenhum mecanismo ainda','Não se aplica'],'9.8|':['Nenhum','Não sabemos'],'10.5|':['Nenhuma','Não sabemos']};
-const FU=[['1.1',['Não'],['data','local']],['1.2',['Não'],['data','local']],['1.3',['Não'],['data','local']],['1.4',['Não','Só houve uma rodada'],['rod']],['1.5',['Não, o protótipo ainda é bem diferente da versão final'],['data']],['1.6',['Não'],['tempo','unid','local','periodo']],['1.8',['Não'],['data','local','pub']],['1.9',['Não'],['conc']],['3.3',['Não'],['ordem']],['3.5',['Não'],['alt']],['3.9',['Não'],['desc']],['4.3',['Não'],['preco','por']],['5.1',['Não'],['conc','dif']],['5.3',['Não'],['lista']],['5.8',['Não'],['desc']],['7.2',['Não, a equipe principal da PoC continua'],['papel']],['8.9',['Não'],['cadeia','parc']],['9.1',['Não'],['qual']],['9.2',['Não'],['alt','altdesc']],['9.4',['Não'],['lgpd']],['9.5',['Não'],['rev']],['9.6',['Não'],['plano']],['9.7',['Não'],['desc']],['10.6',['Não'],['lista']],['10.7',['Não'],['quais','dialogo','reunioes']]];
+const EXCL={'4.10|pag':['Ainda não sabemos'],'4.1|':['Ainda não definido'],'5.2|':['Nada específico por enquanto'],'5.4|':['Ainda não definido'],'5.6|':['Ainda não avaliamos'],'6.4|':['Nenhuma','Não sabemos'],'8.1|':['Nenhum'],'8.5|':['Não se aplica'],'8.8|':['Nenhum mecanismo ainda','Não se aplica'],'9.8|':['Nenhum','Não sabemos'],'10.5|':['Nenhuma','Não sabemos']};
+const FU=[['7.8',['Não'],['ativ']],['2.10',['Não'],['quais']],['1.1',['Não'],['data','local']],['1.2',['Não'],['data','local']],['1.3',['Não'],['data','local']],['1.4',['Não','Só houve uma rodada'],['rod']],['1.5',['Não, o protótipo ainda é bem diferente da versão final'],['data']],['1.6',['Não'],['tempo','unid','local','periodo']],['1.8',['Não'],['data','local','pub']],['1.9',['Não'],['conc']],['3.3',['Não'],['ordem']],['3.5',['Não'],['alt']],['3.9',['Não'],['desc']],['4.3',['Não'],['preco','por']],['5.1',['Não'],['conc','dif']],['5.3',['Não'],['lista']],['5.8',['Não'],['desc']],['7.2',['Não, a equipe principal da PoC continua'],['papel']],['8.9',['Não'],['cadeia','parc']],['9.1',['Não'],['qual']],['9.2',['Não'],['alt','altdesc']],['9.4',['Não'],['lgpd']],['9.5',['Não'],['rev']],['9.6',['Não'],['plano']],['9.7',['Não'],['desc']],['10.6',['Não'],['lista']],['10.7',['Não'],['quais','dialogo','reunioes']]];
 const FUM=[['6.4|',['Nenhuma','Não sabemos'],['desc']],['8.8|',['Nenhum mecanismo ainda'],['desc']],['9.8|',['Nenhum','Não sabemos'],['sisgen','rep']],['10.5|',['Nenhuma','Não sabemos'],['aut']]];
 let NW=0,WL=[];
 const num=x=>{if(!has(x))return NaN;let t=String(x).replace(/[^0-9.,]/g,'');if(t.indexOf(',')>=0)t=t.replace(/\./g,'').replace(',','.');else if(/^\d{1,3}(\.\d{3})+$/.test(t))t=t.replace(/\./g,'');return parseFloat(t)};
@@ -842,7 +848,7 @@ function checks(){
   if(sv('4.3')==='Não'&&f('4.4')&&sv('4.4')!=='Não foi apresentado')add(['4.3','4.4'],'Em 4.3 vocês marcaram que não há preço definido, mas em 4.4 informaram a reação dos clientes ao preço.');
   if(sv('4.3')==='Não'&&sv('4.6')==='Sim')add(['4.3','4.6'],'Em 4.6 vocês marcaram margem positiva, mas em 4.3 marcaram que não há preço definido.');
   if(sv('4.6')==='Sim'&&sv('2.8','st')==='Ainda não calculado')add(['2.8','4.6'],'Em 4.6 vocês marcaram margem positiva, mas em 2.8 o custo de produção ainda não foi calculado.');
-  if(sv('4.1')==='Ainda não definido'&&sv('4.2')&&sv('4.2')!=='Ainda não apresentamos')add(['4.1','4.2'],'Em 4.1 o modelo de receita ainda não está definido, mas em 4.2 vocês informaram a reação dos clientes a ele.');
+  if(av('4.1').includes('Ainda não definido')&&sv('4.2')&&sv('4.2')!=='Ainda não apresentamos')add(['4.1','4.2'],'Em 4.1 o modelo de receita ainda não está definido, mas em 4.2 vocês informaram a reação dos clientes a ele.');
 
   /* Seção 5 */
   if(av('5.4').includes('Ainda não definido')&&sv('5.5').startsWith('Sim'))add(['5.4','5.5'],'Em 5.5 vocês disseram que os caminhos até os clientes já geraram oportunidades, mas em 5.4 marcaram que eles ainda não estão definidos.');
@@ -866,6 +872,8 @@ function checks(){
   if((yes('7.6')||sv('7.6')==='Não')&&ans&&!falta)add(['7.6','7.4','7.5'],'Em 7.6 vocês responderam sobre plano para os itens em falta, mas nenhum item está como “Falta” em 7.4 ou 7.5.');
   if(sv('7.3')==='Não'&&sv('7.4','e')==='Temos na equipe')add(['7.3','7.4'],'Em 7.3 vocês marcaram que não há responsável comercial, mas em 7.4 (e) marcaram que a equipe tem a competência de vendas.');
   const b115=+sv('11.5','b'),d115=+sv('11.5','d'),a115=+sv('11.5','a');
+  const c115=+sv('11.5','c');
+  if(sv('7.8')==='Sim, com dedicação igual ou maior'&&c115>=4)add(['7.8','11.5'],'Em 7.8 as pessoas-chave têm outras atividades com dedicação igual ou maior, mas em 11.5 (c) vocês concordam que elas dedicam à solução o tempo que ela precisa. Confiram.');
   if(sv('7.3')==='Sim, com dedicação integral'&&b115&&b115<=2)add(['7.3','11.5'],'Em 7.3 há responsável comercial em dedicação integral, mas em 11.5 (b) vocês discordam de que há uma pessoa dedicada à área comercial.');
   if(sv('7.3')==='Não'&&b115>=4)add(['7.3','11.5'],'Em 7.3 vocês marcaram que não há responsável comercial, mas em 11.5 (b) vocês concordam que há uma pessoa dedicada.');
   if(['Não está definida','Não sabemos'].includes(sv('2.2'))&&d115>=4)add(['2.2','11.5'],'Em 2.2 a titularidade não está definida, mas em 11.5 (d) vocês concordam que ela está formalizada.');
@@ -877,7 +885,7 @@ function checks(){
   const q82=ALLQ.find(q=>q.id==='8.2'),R82={};q82.rw.forEach(r=>{if(r.id)R82[r.id]=r});
   const ks=Object.keys(R82);
   const meaning=(id,k)=>{const x=sv('8.2',id+'.'+k);return !!x&&!/^Não (medido|estimado)$/.test(x)};
-  const T82={trab:['a','b','c'],cap:['d'],sbn:['e','f'],carb:['g'],amb:['h','i','j']};
+  const T82={trab:['a','b','c'],cap:['d'],sbn:['e','f','g','h'],carb:['i'],amb:['j','k','l']};
   const N82={trab:'Trabalho e renda na região',cap:'Capacitação de pessoas da região',grup:'Benefícios para grupos da região',sbn:'Soluções baseadas na natureza',carb:'Descarbonização',amb:'Outros benefícios ambientais'};
   const m81=av('8.1');
   if(m81.length){
@@ -914,6 +922,7 @@ function checks(){
   FUM.forEach(([key,vals,ch])=>{const q=key.slice(0,-1);if(av(q).some(x=>vals.includes(x))&&ch.some(k=>f(q,k)))add(q,`Em ${q} vocês marcaram “${av(q).filter(x=>vals.includes(x)).join(', ')}”, mas preencheram um campo que só vale para quem marcou algum item.`)});
 
   if(sv('9.2','alt')==='Não'&&f('9.2','altdesc'))add('9.2','Em 9.2 vocês marcaram que não há alternativa prevista, mas descreveram uma alternativa.');
+  ['4.9','4.10','4.11'].forEach(q=>{if(av(q,'na').length&&Object.keys(S).some(k=>k.startsWith(q+'|')&&!k.startsWith(q+'|na')&&has(S[k])))add(q,`Em ${q} vocês marcaram “Não se aplica”, mas preencheram outros campos da pergunta.`)});
   /* NA exige justificativa */
   ALLQ.forEach(q=>(q.p||[]).forEach(p=>{if(p.ty!=='r'&&p.ty!=='c')return;const key=partKey(q,p);
     p.o.split('|').map(parseOpt).forEach((o,i)=>{if(!o.note||!/^Não se aplica/.test(o.lab))return;
@@ -965,9 +974,9 @@ function dumpQ(q){
   (q.p||[]).forEach(p=>ln(p.l||'',partVal(q,p)));
   if(q.g)q.g.rows.forEach(([rid,lab])=>ln(rowLabel(`${q.id}|${rid}`,lab),S[`${q.id}|${rid}`]));
   if(q.mt)for(let i=0;i<3;i++)ln('Meta '+(i+1),S[`${q.id}|m${i}`]);
-  if(q.tb){const n=+S[q.id+'|n']||q.tb.n;
-    for(let i=0;i<n;i++){const cells=q.tb.cols.map((col,j)=>q.tb.num&&j===0?null:(S[`${q.id}|r${i}c${j}`]?`${col}: ${S[`${q.id}|r${i}c${j}`]}`:null)).filter(Boolean);
-      if(cells.length)out.push(`  Linha ${i+1}: ${cells.join(' | ')}`)}}
+  if(q.tb){const n=q.tb.rl?q.tb.rl.length:(+S[q.id+'|n']||q.tb.n);
+    for(let i=0;i<n;i++){const cells=q.tb.cols.map((col,j)=>(q.tb.num||q.tb.rl)&&j===0?null:(S[`${q.id}|r${i}c${j}`]?`${col}: ${S[`${q.id}|r${i}c${j}`]}`:null)).filter(Boolean);
+      if(cells.length)out.push(`  ${q.tb.rl?q.tb.rl[i]:'Linha '+(i+1)}: ${cells.join(' | ')}`)}}
   (q.pa||[]).forEach(p=>ln(p.l||'',partVal(q,p)));
   if(ATT[q.id])ln('Anexo '+ATT[q.id][0]+' enviado ao Drive',valStr(q.id+'|anexo','Já enviei este anexo para a pasta do Drive',true)?'sim':'');
   if(q.rw)q.rw.forEach(rw=>{if(rw.grp)return;const key=`${q.id}|${rw.id}`;
@@ -994,9 +1003,9 @@ function qEntries(q){
   (q.p||[]).forEach(p=>ln(q.id==='DECL'&&p.k==='ok'?'Declaração':p.l,partVal(q,p)));
   if(q.g)q.g.rows.forEach(([rid,lab])=>ln(rowLabel(`${q.id}|${rid}`,lab),S[`${q.id}|${rid}`]));
   if(q.mt)for(let i=0;i<3;i++)ln('Meta '+(i+1),S[`${q.id}|m${i}`]);
-  if(q.tb){const n=+S[q.id+'|n']||q.tb.n;
-    for(let i=0;i<n;i++){const cells=q.tb.cols.map((col,j)=>q.tb.num&&j===0?null:(has(S[`${q.id}|r${i}c${j}`])?`${col}: ${S[`${q.id}|r${i}c${j}`]}`:null)).filter(Boolean);
-      if(cells.length)out.push(['Linha '+(i+1),cells.join('; ')])}}
+  if(q.tb){const n=q.tb.rl?q.tb.rl.length:(+S[q.id+'|n']||q.tb.n);
+    for(let i=0;i<n;i++){const cells=q.tb.cols.map((col,j)=>(q.tb.num||q.tb.rl)&&j===0?null:(has(S[`${q.id}|r${i}c${j}`])?`${col}: ${S[`${q.id}|r${i}c${j}`]}`:null)).filter(Boolean);
+      if(cells.length)out.push([q.tb.rl?q.tb.rl[i]:'Linha '+(i+1),cells.join('; ')])}}
   if(q.rw)q.rw.forEach(rw=>{if(rw.grp)return;const key=`${q.id}|${rw.id}`;
     const vs=rw.f.map(p=>{const v=partVal(q,p,rw.id);return has(v)?(p.l?p.l+': ':'')+v:null}).filter(Boolean);
     if(vs.length)out.push([rowLabel(key,rw.l),vs.join(' | ')])});
@@ -1061,7 +1070,7 @@ function montaPdf(){
   return doc;
 }
 async function gerarPdf(){
-  if(!(window.jspdf&&window.jspdf.jsPDF)){status('Não foi possível carregar o gerador de PDF. Confira a conexão com a internet e recarregue a página.','err');return}
+  if(!(window.jspdf&&window.jspdf.jsPDF)){status('Não foi possível carregar o gerador de PDF. Confiram a conexão com a internet e recarreguem a página.','err');return}
   let doc;try{doc=montaPdf()}catch(e){console.error(e);status('Não foi possível montar o PDF.','err');return}
   const name=`autoavaliacao-tech4amazonia-${slug()}.pdf`,buf=doc.output('arraybuffer');
   if(!(window.claude&&window.claude.use)){baixarBlob(name,buf,'application/pdf');status('PDF salvo na pasta de downloads do navegador. Guardem esta cópia.','ok');return}
